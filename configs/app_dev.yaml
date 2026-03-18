@@ -1,0 +1,30 @@
+server:
+  host: 0.0.0.0
+  port: 8080
+
+auth:
+  secret_key: "linkstash-dev-secret-2024"
+  jwt_secret: "linkstash-jwt-secret-key-change-in-production"
+  jwt_expire_hours: 72
+
+database:
+  path: "./data/linkstash.db"
+
+llm:
+  chat:
+    endpoint: "https://api.openai.com/v1/chat/completions"
+    api_key: "${OPENAI_API_KEY}"
+    model: "gpt-4o-mini"
+  embedding:
+    endpoint: "https://api.openai.com/v1/embeddings"
+    api_key: "${OPENAI_API_KEY}"
+    model: "text-embedding-3-small"
+    dimensions: 512
+  prompts:
+    url_analysis: |
+      分析以下网页内容，返回JSON格式：
+      {"title":"标题","keywords":"关键词1,关键词2","description":"50字内摘要","category":"分类","tags":"标签1,标签2"}
+      仅返回JSON，不要其他内容。
+    url_categorize: |
+      根据以下URL和标题，判断最合适的分类（建议从以下选项中选择，也可自定义）：
+      技术、设计、产品、商业、科学、生活、工具、资讯、其他

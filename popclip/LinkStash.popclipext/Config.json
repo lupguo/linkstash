@@ -1,0 +1,14 @@
+{
+  "identifier": "com.lupguo.linkstash",
+  "popclipVersion": 4151,
+  "name": "LinkStash",
+  "icon": "iconify:mdi:link-plus",
+  "description": "Save selected URL to LinkStash",
+  "actions": [{
+    "title": "Save to LinkStash",
+    "icon": "iconify:mdi:link-plus",
+    "type": "shell-script",
+    "shell-script-file": "action.sh",
+    "requirements": ["url"]
+  }]
+}

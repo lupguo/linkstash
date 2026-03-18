@@ -1,0 +1,22 @@
+# Binaries
+linkstash
+linkstash-server
+*.exe
+
+# Data
+data/
+*.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
+# Superpowers
+.superpowers/
+
+# Temp
+/tmp/

@@ -1,0 +1,62 @@
+{{define "url_card"}}
+<a href="/urls/{{.ID}}" class="terminal-card rounded p-4 block hover:border-terminal-green transition-colors">
+    <div class="flex flex-col sm:flex-row sm:items-start gap-3">
+        <!-- Main Content -->
+        <div class="flex-1 min-w-0">
+            <!-- Title / Link -->
+            <h3 class="text-sm font-semibold truncate">
+                {{if .Title}}{{.Title}}{{else}}{{.Link}}{{end}}
+            </h3>
+
+            <!-- Link (if title exists) -->
+            {{if .Title}}
+            <p class="text-xs text-terminal-cyan truncate mt-0.5">{{.Link}}</p>
+            {{end}}
+
+            <!-- Description -->
+            {{if .Description}}
+            <p class="text-xs text-terminal-gray mt-1 line-clamp-2">{{.Description}}</p>
+            {{end}}
+
+            <!-- Tags & Category -->
+            <div class="flex flex-wrap items-center gap-2 mt-2">
+                {{if .Category}}
+                <span class="px-2 py-0.5 border border-terminal-cyan text-terminal-cyan text-xs rounded">
+                    {{.Category}}
+                </span>
+                {{end}}
+
+                {{if .Tags}}
+                <span class="text-xs text-terminal-gray">{{.Tags}}</span>
+                {{end}}
+            </div>
+        </div>
+
+        <!-- Right Side: Status & Meta -->
+        <div class="flex sm:flex-col items-center sm:items-end gap-2 text-xs flex-shrink-0">
+            <!-- Status Badge -->
+            {{if eq .Status "pending"}}
+            <span class="px-2 py-0.5 border border-yellow-500 text-yellow-500 rounded">pending</span>
+            {{else if eq .Status "analyzing"}}
+            <span class="px-2 py-0.5 border border-blue-400 text-blue-400 rounded">analyzing</span>
+            {{else if eq .Status "ready"}}
+            <span class="px-2 py-0.5 border border-terminal-green text-terminal-green rounded">ready</span>
+            {{else if eq .Status "failed"}}
+            <span class="px-2 py-0.5 border border-terminal-red text-terminal-red rounded">failed</span>
+            {{else}}
+            <span class="px-2 py-0.5 border border-terminal-gray text-terminal-gray rounded">{{.Status}}</span>
+            {{end}}
+
+            <!-- Visit Count -->
+            <span class="text-terminal-gray">
+                visits: <span class="text-terminal-green">{{.VisitCount}}</span>
+            </span>
+
+            <!-- Date -->
+            <span class="text-terminal-gray">
+                {{.CreatedAt.Format "2006-01-02"}}
+            </span>
+        </div>
+    </div>
+</a>
+{{end}}

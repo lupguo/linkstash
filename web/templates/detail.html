@@ -1,0 +1,277 @@
+{{define "content"}}
+<div x-data="detailPage()">
+    <!-- Back Link -->
+    <a href="/" class="text-terminal-gray hover:text-terminal-green text-sm mb-4 inline-block">
+        &lt;-- cd /urls
+    </a>
+
+    <!-- Header -->
+    <h1 class="text-xl font-bold mb-6">
+        <span class="text-terminal-gray">$</span> cat /urls/{{.URL.ID}}
+    </h1>
+
+    <!-- Detail Card -->
+    <div class="terminal-card rounded p-6 space-y-4">
+        <!-- Link -->
+        <div>
+            <span class="text-terminal-gray text-xs block mb-1">link:</span>
+            <a href="{{.URL.Link}}" target="_blank" rel="noopener"
+               class="text-terminal-cyan hover:underline break-all text-sm">
+                {{.URL.Link}}
+            </a>
+        </div>
+
+        <!-- Title -->
+        <div>
+            <span class="text-terminal-gray text-xs block mb-1">title:</span>
+            <template x-if="!editing">
+                <p class="text-sm">{{if .URL.Title}}{{.URL.Title}}{{else}}<span class="text-terminal-gray">-- no title --</span>{{end}}</p>
+            </template>
+            <template x-if="editing">
+                <input type="text" x-model="form.title" class="terminal-input w-full px-3 py-2 rounded text-sm"
+                       value="{{.URL.Title}}">
+            </template>
+        </div>
+
+        <!-- Description -->
+        <div>
+            <span class="text-terminal-gray text-xs block mb-1">description:</span>
+            <template x-if="!editing">
+                <p class="text-sm text-terminal-gray">{{if .URL.Description}}{{.URL.Description}}{{else}}-- no description --{{end}}</p>
+            </template>
+            <template x-if="editing">
+                <textarea x-model="form.description" class="terminal-input w-full px-3 py-2 rounded text-sm" rows="3">{{.URL.Description}}</textarea>
+            </template>
+        </div>
+
+        <!-- Keywords -->
+        <div>
+            <span class="text-terminal-gray text-xs block mb-1">keywords:</span>
+            <template x-if="!editing">
+                <p class="text-sm">{{if .URL.Keywords}}{{.URL.Keywords}}{{else}}<span class="text-terminal-gray">-- none --</span>{{end}}</p>
+            </template>
+            <template x-if="editing">
+                <input type="text" x-model="form.keywords" class="terminal-input w-full px-3 py-2 rounded text-sm"
+                       value="{{.URL.Keywords}}">
+            </template>
+        </div>
+
+        <!-- Category & Tags Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <span class="text-terminal-gray text-xs block mb-1">category:</span>
+                <template x-if="!editing">
+                    <span class="inline-block px-2 py-1 border border-terminal-cyan text-terminal-cyan text-xs rounded">
+                        {{if .URL.Category}}{{.URL.Category}}{{else}}uncategorized{{end}}
+                    </span>
+                </template>
+                <template x-if="editing">
+                    <input type="text" x-model="form.category" class="terminal-input w-full px-3 py-2 rounded text-sm"
+                           value="{{.URL.Category}}">
+                </template>
+            </div>
+            <div>
+                <span class="text-terminal-gray text-xs block mb-1">tags:</span>
+                <template x-if="!editing">
+                    <div class="flex flex-wrap gap-1">
+                        {{if .URL.Tags}}
+                        {{range .TagList}}
+                        <span class="px-2 py-0.5 border border-terminal-border text-terminal-gray text-xs rounded">{{.}}</span>
+                        {{end}}
+                        {{else}}
+                        <span class="text-terminal-gray text-xs">-- none --</span>
+                        {{end}}
+                    </div>
+                </template>
+                <template x-if="editing">
+                    <input type="text" x-model="form.tags" class="terminal-input w-full px-3 py-2 rounded text-sm"
+                           value="{{.URL.Tags}}" placeholder="comma separated">
+                </template>
+            </div>
+        </div>
+
+        <!-- Status & Metrics Row -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-terminal-border">
+            <div>
+                <span class="text-terminal-gray text-xs block mb-1">status:</span>
+                {{if eq .URL.Status "pending"}}
+                <span class="px-2 py-0.5 border border-yellow-500 text-yellow-500 text-xs rounded">pending</span>
+                {{else if eq .URL.Status "analyzing"}}
+                <span class="px-2 py-0.5 border border-blue-400 text-blue-400 text-xs rounded">analyzing</span>
+                {{else if eq .URL.Status "ready"}}
+                <span class="px-2 py-0.5 border border-terminal-green text-terminal-green text-xs rounded">ready</span>
+                {{else if eq .URL.Status "failed"}}
+                <span class="px-2 py-0.5 border border-terminal-red text-terminal-red text-xs rounded">failed</span>
+                {{else}}
+                <span class="px-2 py-0.5 border border-terminal-gray text-terminal-gray text-xs rounded">{{.URL.Status}}</span>
+                {{end}}
+            </div>
+            <div>
+                <span class="text-terminal-gray text-xs block mb-1">visits:</span>
+                <span class="text-sm">{{.URL.VisitCount}}</span>
+            </div>
+            <div>
+                <span class="text-terminal-gray text-xs block mb-1">auto_weight:</span>
+                <span class="text-sm">{{printf "%.2f" .URL.AutoWeight}}</span>
+            </div>
+            <div>
+                <span class="text-terminal-gray text-xs block mb-1">manual_weight:</span>
+                <template x-if="!editing">
+                    <span class="text-sm">{{printf "%.2f" .URL.ManualWeight}}</span>
+                </template>
+                <template x-if="editing">
+                    <input type="number" step="0.1" x-model="form.manual_weight"
+                           class="terminal-input w-full px-2 py-1 rounded text-sm">
+                </template>
+            </div>
+        </div>
+
+        <!-- Timestamps -->
+        <div class="pt-2 border-t border-terminal-border text-xs text-terminal-gray">
+            <p>created: {{.URL.CreatedAt.Format "2006-01-02 15:04:05"}}</p>
+            <p>updated: {{.URL.UpdatedAt.Format "2006-01-02 15:04:05"}}</p>
+            {{if .URL.LastVisitAt}}
+            <p>last_visit: {{.URL.LastVisitAt.Format "2006-01-02 15:04:05"}}</p>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mt-6 flex flex-wrap gap-3">
+        <!-- Edit / Save -->
+        <template x-if="!editing">
+            <button @click="startEdit()" class="terminal-btn px-4 py-2 rounded text-sm">> edit</button>
+        </template>
+        <template x-if="editing">
+            <div class="flex gap-3">
+                <button @click="saveEdit()" class="terminal-btn px-4 py-2 rounded text-sm"
+                        :disabled="saving">
+                    <span x-show="!saving">> save</span>
+                    <span x-show="saving">saving...</span>
+                </button>
+                <button @click="editing = false" class="terminal-btn terminal-btn-danger px-4 py-2 rounded text-sm">> cancel</button>
+            </div>
+        </template>
+
+        <!-- Record Visit -->
+        <button @click="recordVisit()" class="terminal-btn px-4 py-2 rounded text-sm"
+                :disabled="visiting">
+            <span x-show="!visiting">> record_visit</span>
+            <span x-show="visiting">recording...</span>
+        </button>
+
+        <!-- Delete -->
+        <button @click="confirmDelete()" class="terminal-btn terminal-btn-danger px-4 py-2 rounded text-sm">> delete</button>
+    </div>
+
+    <!-- Messages -->
+    <div x-show="message" class="mt-4 p-3 border rounded text-sm"
+         :class="messageType === 'error' ? 'border-terminal-red text-terminal-red' : 'border-terminal-green text-terminal-green'">
+        <span x-text="message"></span>
+    </div>
+</div>
+
+<script>
+function detailPage() {
+    return {
+        editing: false,
+        saving: false,
+        visiting: false,
+        message: '',
+        messageType: '',
+        form: {
+            title: '{{.URL.Title}}',
+            description: '{{.URL.Description}}',
+            keywords: '{{.URL.Keywords}}',
+            category: '{{.URL.Category}}',
+            tags: '{{.URL.Tags}}',
+            manual_weight: {{.URL.ManualWeight}},
+        },
+        startEdit() {
+            this.editing = true;
+            this.message = '';
+        },
+        async saveEdit() {
+            this.saving = true;
+            this.message = '';
+            try {
+                const token = getCookie('linkstash_token');
+                const resp = await fetch('/api/urls/{{.URL.ID}}', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token,
+                    },
+                    body: JSON.stringify(this.form),
+                });
+                if (!resp.ok) {
+                    const data = await resp.json();
+                    this.message = (data.error && data.error.message) || 'update failed';
+                    this.messageType = 'error';
+                } else {
+                    this.message = 'updated successfully';
+                    this.messageType = 'success';
+                    this.editing = false;
+                    setTimeout(() => window.location.reload(), 500);
+                }
+            } catch (e) {
+                this.message = 'network error';
+                this.messageType = 'error';
+            }
+            this.saving = false;
+        },
+        async recordVisit() {
+            this.visiting = true;
+            this.message = '';
+            try {
+                const token = getCookie('linkstash_token');
+                const resp = await fetch('/api/urls/{{.URL.ID}}/visit', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                });
+                if (resp.ok) {
+                    this.message = 'visit recorded';
+                    this.messageType = 'success';
+                    setTimeout(() => window.location.reload(), 500);
+                } else {
+                    this.message = 'failed to record visit';
+                    this.messageType = 'error';
+                }
+            } catch (e) {
+                this.message = 'network error';
+                this.messageType = 'error';
+            }
+            this.visiting = false;
+        },
+        confirmDelete() {
+            if (confirm('$ rm -rf /urls/{{.URL.ID}} -- are you sure?')) {
+                this.doDelete();
+            }
+        },
+        async doDelete() {
+            try {
+                const token = getCookie('linkstash_token');
+                const resp = await fetch('/api/urls/{{.URL.ID}}', {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                });
+                if (resp.ok) {
+                    window.location.href = '/';
+                } else {
+                    this.message = 'delete failed';
+                    this.messageType = 'error';
+                }
+            } catch (e) {
+                this.message = 'network error';
+                this.messageType = 'error';
+            }
+        },
+    };
+}
+
+function getCookie(name) {
+    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? v.pop() : '';
+}
+</script>
+{{end}}
