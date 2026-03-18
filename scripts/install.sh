@@ -60,7 +60,7 @@ chmod +x "${INSTALL_DIR}/linkstash"
 # Download example config
 echo "==> Downloading example config..."
 mkdir -p "${HOME}/.linkstash"
-curl -fsSL "https://raw.githubusercontent.com/${REPO}/${VERSION}/configs/app_dev.yaml" -o "${HOME}/.linkstash/config.yaml" 2>/dev/null || true
+curl -fsSL "https://raw.githubusercontent.com/${REPO}/${VERSION}/conf/app_dev.yaml" -o "${HOME}/.linkstash/config.yaml" 2>/dev/null || true
 
 echo ""
 echo "✅ LinkStash ${VERSION} installed successfully!"

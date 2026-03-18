@@ -8,7 +8,7 @@ LDFLAGS := -s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)
 # Directories
 BIN_DIR := bin
 DATA_DIR := data
-CONF := configs/app_dev.yaml
+CONF := conf/app_dev.yaml
 
 .PHONY: all build build-server build-cli clean run stop test smoke-test wire tidy lint fmt help
 
@@ -61,7 +61,7 @@ test:
 ## Generate wire code
 wire:
 	@echo ">>> Generating wire code..."
-	cd app/infra/di && wire
+	cd app/di && wire
 
 ## go mod tidy
 tidy:

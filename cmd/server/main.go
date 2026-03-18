@@ -8,12 +8,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
-	"github.com/lupguo/linkstash/app/infra/di"
+	"github.com/lupguo/linkstash/app/di"
 	"github.com/lupguo/linkstash/app/middleware"
 )
 
 func main() {
-	confPath := flag.String("conf", "configs/app_dev.yaml", "config file path")
+	confPath := flag.String("conf", "conf/app_dev.yaml", "config file path")
 	flag.Parse()
 
 	app, err := di.InitializeApp(*confPath)

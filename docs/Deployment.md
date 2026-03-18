@@ -41,14 +41,14 @@ go build -o linkstash-server ./cmd/server/
 go build -o linkstash ./cmd/cli/
 
 # 3. 准备配置
-cp configs/app_dev.yaml configs/app.yaml
-# 编辑 configs/app.yaml，设置 auth.secret_key 和 LLM API Key
+cp conf/app_dev.yaml conf/app.yaml
+# 编辑 conf/app.yaml，设置 auth.secret_key 和 LLM API Key
 
 # 4. 设置 LLM API Key（如使用 OpenAI）
 export OPENAI_API_KEY="sk-xxx"
 
 # 5. 启动
-./linkstash-server -conf configs/app.yaml
+./linkstash-server -conf conf/app.yaml
 
 # 6. 验证
 curl http://localhost:8080/health
@@ -78,7 +78,7 @@ CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o linkstash-se
 
 ### 生产配置文件
 
-创建 `configs/app_prod.yaml`：
+创建 `conf/app_prod.yaml`：
 
 ```yaml
 server:
@@ -114,7 +114,7 @@ llm:
 
 ```bash
 sudo mkdir -p /opt/linkstash/bin
-sudo mkdir -p /opt/linkstash/configs
+sudo mkdir -p /opt/linkstash/conf
 sudo mkdir -p /opt/linkstash/web
 sudo mkdir -p /var/lib/linkstash          # 数据库目录
 sudo mkdir -p /var/log/linkstash          # 日志目录
@@ -122,7 +122,7 @@ sudo mkdir -p /var/log/linkstash          # 日志目录
 # 部署文件
 sudo cp linkstash-server /opt/linkstash/bin/
 sudo cp linkstash /opt/linkstash/bin/
-sudo cp configs/app_prod.yaml /opt/linkstash/configs/app.yaml
+sudo cp conf/app_prod.yaml /opt/linkstash/conf/app.yaml
 sudo cp -r web/ /opt/linkstash/web/
 ```
 
@@ -150,15 +150,15 @@ WORKDIR /app
 COPY --from=builder /build/linkstash-server /app/
 COPY --from=builder /build/linkstash /app/
 COPY --from=builder /build/web/ /app/web/
-COPY --from=builder /build/configs/app_dev.yaml /app/configs/app.yaml
+COPY --from=builder /build/conf/app_dev.yaml /app/conf/app.yaml
 
 RUN mkdir -p /app/data
 
 EXPOSE 8080
-VOLUME ["/app/data", "/app/configs"]
+VOLUME ["/app/data", "/app/conf"]
 
 ENTRYPOINT ["/app/linkstash-server"]
-CMD ["-conf", "/app/configs/app.yaml"]
+CMD ["-conf", "/app/conf/app.yaml"]
 ```
 
 ### docker-compose.yml
@@ -173,7 +173,7 @@ services:
       - "8080:8080"
     volumes:
       - linkstash-data:/app/data
-      - ./configs/app_prod.yaml:/app/configs/app.yaml:ro
+      - ./conf/app_prod.yaml:/app/conf/app.yaml:ro
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     restart: unless-stopped
@@ -206,7 +206,7 @@ Type=simple
 User=linkstash
 Group=linkstash
 WorkingDirectory=/opt/linkstash
-ExecStart=/opt/linkstash/bin/linkstash-server -conf /opt/linkstash/configs/app.yaml
+ExecStart=/opt/linkstash/bin/linkstash-server -conf /opt/linkstash/conf/app.yaml
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
@@ -219,13 +219,13 @@ ProtectHome=true
 ReadWritePaths=/var/lib/linkstash /var/log/linkstash
 
 # 环境变量
-EnvironmentFile=/opt/linkstash/configs/env
+EnvironmentFile=/opt/linkstash/conf/env
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-环境变量文件 `/opt/linkstash/configs/env`：
+环境变量文件 `/opt/linkstash/conf/env`：
 
 ```bash
 OPENAI_API_KEY=sk-xxx

@@ -64,6 +64,7 @@ linkstash/
 │   ├── server/main.go            # 服务端入口
 │   └── cli/                      # CLI 工具 (cobra)
 ├── app/
+│   ├── di/                       # Google Wire 依赖注入
 │   ├── handler/                  # HTTP Handler（API + Web 页面）
 │   ├── middleware/               # JWT 鉴权中间件
 │   ├── application/              # 应用层：用例编排
@@ -73,7 +74,6 @@ linkstash/
 │   │   └── repos/                # 仓储接口
 │   └── infra/
 │       ├── db/                   # GORM 仓储实现 + DB 初始化
-│       ├── di/                   # Google Wire 依赖注入
 │       ├── llm/                  # OpenAI 兼容 LLM 客户端
 │       ├── config/               # YAML 配置加载
 │       └── search/               # FTS5 + 向量检索
@@ -83,7 +83,7 @@ linkstash/
 │   ├── smoke_test.sh             # 冒烟测试（34 项）
 │   └── install.sh                # curl 安装脚本
 ├── .github/workflows/release.yml # GitHub Actions 自动发布
-├── configs/app_dev.yaml          # 示例配置
+├── conf/app_dev.yaml          # 示例配置
 ├── Makefile                      # 构建、运行、测试、发布
 ├── go.mod
 └── go.sum
@@ -91,7 +91,7 @@ linkstash/
 
 **调用链**：`handler → application → domain service → repo (interface) ← infra (实现)`
 
-**依赖注入**：使用 [Google Wire](https://github.com/google/wire) 在 `app/infra/di/` 中编译期生成依赖注入代码。
+**依赖注入**：使用 [Google Wire](https://github.com/google/wire) 在 `app/di/` 中编译期生成依赖注入代码。
 
 ## 🚀 快速开始
 
@@ -107,8 +107,8 @@ make build
 ### 2. 配置
 
 ```bash
-cp configs/app_dev.yaml configs/app.yaml
-# 编辑 configs/app.yaml
+cp conf/app_dev.yaml conf/app.yaml
+# 编辑 conf/app.yaml
 ```
 
 关键配置项：
