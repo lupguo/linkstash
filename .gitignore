@@ -1,7 +1,9 @@
 # Binaries
+bin/
 linkstash
 linkstash-server
 *.exe
+dist/
 
 # Data
 data/
@@ -27,3 +29,5 @@ docs/superpowers/
 
 # Temp
 /tmp/
+*.log
+*.pid

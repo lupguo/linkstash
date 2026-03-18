@@ -234,7 +234,9 @@ echo ""
 # ============================================
 echo -e "${CYAN}--- Phase 6: CLI Commands ---${NC}"
 
-CLI="./linkstash"
+CLI="./bin/linkstash"
+# Fallback to ./linkstash if bin/ not found
+[ -f "$CLI" ] || CLI="./linkstash"
 
 # CLI add
 CLI_ADD=$($CLI add "https://wikipedia.org" 2>&1)
