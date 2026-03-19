@@ -2,12 +2,19 @@ package handler
 
 import (
 	"encoding/json"
+	"math/rand"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/lupguo/linkstash/app/application"
 )
+
+// defaultIcons is the emoji pool for auto-assigning icons to new URLs.
+var defaultIcons = []string{
+	"🔗", "📚", "💻", "🌐", "📝", "🔧", "🎯", "📦", "🚀", "⭐",
+	"📌", "🔍", "💡", "📊", "🎨", "🔒", "📡", "🧩", "🗂️", "✨",
+}
 
 // URLHandler provides HTTP handlers for URL CRUD operations.
 type URLHandler struct {
@@ -41,6 +48,12 @@ func (h *URLHandler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-assign random emoji icon if not set
+	if url.Icon == "" {
+		url.Icon = defaultIcons[rand.Intn(len(defaultIcons))]
+		_ = h.usecase.UpdateURL(url)
+	}
+
 	// Trigger async LLM analysis
 	if h.analysisUsecase != nil {
 		h.analysisUsecase.EnqueueAnalysis(url.ID)
@@ -71,7 +84,7 @@ func (h *URLHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 	category := q.Get("category")
 	tags := q.Get("tags")
 
-	urls, total, err := h.usecase.ListURLs(page, size, sort, category, tags)
+	urls, total, err := h.usecase.ListURLs(page, size, sort, category, tags, false)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
@@ -145,6 +158,15 @@ func (h *URLHandler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	if v, ok := updates["link"]; ok {
 		existing.Link = v.(string)
+	}
+	if v, ok := updates["visit_count"]; ok {
+		existing.VisitCount = int(v.(float64))
+	}
+	if v, ok := updates["color"]; ok {
+		existing.Color = v.(string)
+	}
+	if v, ok := updates["icon"]; ok {
+		existing.Icon = v.(string)
 	}
 
 	if err := h.usecase.UpdateURL(existing); err != nil {
