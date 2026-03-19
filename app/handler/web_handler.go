@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"context"
 	"html/template"
 	"log"
 	"math"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -12,50 +14,76 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lupguo/linkstash/app/application"
+	"github.com/lupguo/linkstash/app/domain/entity"
 	"github.com/lupguo/linkstash/app/infra/config"
 )
 
 // WebHandler serves the HTML web UI pages.
 type WebHandler struct {
-	tmpl          *template.Template
+	tmplMap       map[string]*template.Template
 	urlUsecase    *application.URLUsecase
 	searchUsecase *application.SearchUsecase
 	authCfg       *config.AuthConfig
+	shortCfg      *config.ShortConfig
+	categories    []string
 }
 
-// NewWebHandler creates a new WebHandler, parsing all templates from
-// web/templates/*.html and web/components/*.html.
+// NewWebHandler creates a new WebHandler, parsing per-page template sets.
+// Each page template is paired with layout.html and component files so that
+// the "content" block is unique per page (Go's html/template keeps only the
+// last definition when all files are parsed together).
 func NewWebHandler(
 	urlUsecase *application.URLUsecase,
 	searchUsecase *application.SearchUsecase,
 	authCfg *config.AuthConfig,
+	shortCfg *config.ShortConfig,
+	categories []string,
 	templateDir string,
 ) *WebHandler {
-	// Parse all templates and components together
-	patterns := []string{
-		filepath.Join(templateDir, "templates", "*.html"),
-		filepath.Join(templateDir, "components", "*.html"),
+	layoutFile := filepath.Join(templateDir, "templates", "layout.html")
+
+	// Collect component files (shared partials)
+	componentPattern := filepath.Join(templateDir, "components", "*.html")
+	componentFiles, err := filepath.Glob(componentPattern)
+	if err != nil {
+		log.Fatalf("web_handler: glob component error: %v", err)
 	}
 
-	tmpl := template.New("")
-	for _, pattern := range patterns {
-		files, err := filepath.Glob(pattern)
-		if err != nil {
-			log.Fatalf("web_handler: glob pattern error %s: %v", pattern, err)
-		}
-		if len(files) > 0 {
-			tmpl, err = tmpl.ParseFiles(files...)
+	// Custom template functions
+	funcMap := template.FuncMap{
+		"domain": func(link string) string {
+			u, err := url.Parse(link)
 			if err != nil {
-				log.Fatalf("web_handler: parse templates error: %v", err)
+				return ""
 			}
+			return u.Hostname()
+		},
+		"safeURL": func(s string) template.URL {
+			return template.URL(s)
+		},
+	}
+
+	// Page templates to parse individually with the layout
+	pages := []string{"login", "index", "detail"}
+	tmplMap := make(map[string]*template.Template, len(pages))
+
+	for _, page := range pages {
+		pageFile := filepath.Join(templateDir, "templates", page+".html")
+		files := append([]string{layoutFile, pageFile}, componentFiles...)
+		t, err := template.New("").Funcs(funcMap).ParseFiles(files...)
+		if err != nil {
+			log.Fatalf("web_handler: parse template %s error: %v", page, err)
 		}
+		tmplMap[page] = t
 	}
 
 	return &WebHandler{
-		tmpl:          tmpl,
+		tmplMap:       tmplMap,
 		urlUsecase:    urlUsecase,
 		searchUsecase: searchUsecase,
 		authCfg:       authCfg,
+		shortCfg:      shortCfg,
+		categories:    categories,
 	}
 }
 
@@ -136,16 +164,22 @@ func (h *WebHandler) isAuthenticated(r *http.Request) bool {
 	return err == nil && token.Valid
 }
 
-// renderTemplate executes the "layout" template with the given data.
-func (h *WebHandler) renderTemplate(w http.ResponseWriter, data interface{}) {
+// renderTemplate executes the "layout" template for the given page with the given data.
+func (h *WebHandler) renderTemplate(w http.ResponseWriter, page string, data interface{}) {
+	t, ok := h.tmplMap[page]
+	if !ok {
+		log.Printf("web_handler: unknown page template: %s", page)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.tmpl.ExecuteTemplate(w, "layout", data); err != nil {
-		log.Printf("web_handler: render error: %v", err)
+	if err := t.ExecuteTemplate(w, "layout", data); err != nil {
+		log.Printf("web_handler: render error (%s): %v", page, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
-// HandleIndex serves GET / - the URL list page.
+// HandleIndex serves GET / - the URL list page with optional search.
 func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	if !h.isAuthenticated(r) {
 		http.Redirect(w, r, "/login", http.StatusFound)
@@ -163,29 +197,162 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	sort := r.URL.Query().Get("sort")
 	if sort == "" {
-		sort = "time"
+		sort = "weight"
 	}
 	category := r.URL.Query().Get("category")
 	tags := r.URL.Query().Get("tags")
+	isShortURL := r.URL.Query().Get("is_shorturl") == "1"
 
-	urls, total, err := h.urlUsecase.ListURLs(page, size, sort, category, tags)
-	if err != nil {
-		log.Printf("web_handler: list urls error: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+	// Search parameters
+	query := r.URL.Query().Get("q")
+	searchType := r.URL.Query().Get("search_type")
+	if searchType == "" {
+		searchType = "keyword"
+	}
+
+	type indexURL struct {
+		*entity.URL
+		Score    float64
+		HasScore bool
+	}
+
+	var (
+		displayURLs []indexURL
+		total       int64
+		isSearch    bool
+	)
+
+	if query != "" {
+		// Search mode
+		isSearch = true
+		ctx := context.Background()
+		results, searchTotal, err := h.searchUsecase.Search(ctx, query, searchType, page, size)
+		if err != nil {
+			log.Printf("web_handler: search error: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		total = int64(searchTotal)
+		for _, item := range results {
+			displayURLs = append(displayURLs, indexURL{URL: item.URL, Score: item.Score, HasScore: true})
+		}
+	} else {
+		// Normal list mode
+		urls, listTotal, err := h.urlUsecase.ListURLs(page, size, sort, category, tags, isShortURL)
+		if err != nil {
+			log.Printf("web_handler: list urls error: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		total = listTotal
+		for _, u := range urls {
+			displayURLs = append(displayURLs, indexURL{URL: u})
+		}
 	}
 
 	pd := newPageData(page, size, total, category, sort)
+	pd.Categories = h.categories
 
 	data := struct {
 		pageData
-		URLs interface{}
+		URLs       []indexURL
+		Query      string
+		SearchType string
+		IsSearch   bool
+		IsShortURL bool
 	}{
-		pageData: pd,
-		URLs:     urls,
+		pageData:   pd,
+		URLs:       displayURLs,
+		Query:      query,
+		SearchType: searchType,
+		IsSearch:   isSearch,
+		IsShortURL: isShortURL,
 	}
 
-	h.renderTemplate(w, data)
+	h.renderTemplate(w, "index", data)
+}
+
+// HandleIndexCards serves GET /cards - returns only card HTML fragments for infinite scroll.
+func (h *WebHandler) HandleIndexCards(w http.ResponseWriter, r *http.Request) {
+	if !h.isAuthenticated(r) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Parse query parameters (same as HandleIndex)
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	size, _ := strconv.Atoi(r.URL.Query().Get("size"))
+	if size <= 0 {
+		size = 20
+	}
+	sort := r.URL.Query().Get("sort")
+	if sort == "" {
+		sort = "weight"
+	}
+	category := r.URL.Query().Get("category")
+	tags := r.URL.Query().Get("tags")
+	isShortURL := r.URL.Query().Get("is_shorturl") == "1"
+
+	// Search parameters
+	query := r.URL.Query().Get("q")
+	searchType := r.URL.Query().Get("search_type")
+	if searchType == "" {
+		searchType = "keyword"
+	}
+
+	type indexURL struct {
+		*entity.URL
+		Score    float64
+		HasScore bool
+	}
+
+	var displayURLs []indexURL
+
+	if query != "" {
+		ctx := context.Background()
+		results, _, err := h.searchUsecase.Search(ctx, query, searchType, page, size)
+		if err != nil {
+			log.Printf("web_handler: search error: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		for _, item := range results {
+			displayURLs = append(displayURLs, indexURL{URL: item.URL, Score: item.Score, HasScore: true})
+		}
+	} else {
+		urls, _, err := h.urlUsecase.ListURLs(page, size, sort, category, tags, isShortURL)
+		if err != nil {
+			log.Printf("web_handler: list urls error: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		for _, u := range urls {
+			displayURLs = append(displayURLs, indexURL{URL: u})
+		}
+	}
+
+	// Return empty body if no results
+	if len(displayURLs) == 0 {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		return
+	}
+
+	// Render each card fragment using the "url_card" template
+	t, ok := h.tmplMap["index"]
+	if !ok {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	for _, item := range displayURLs {
+		if err := t.ExecuteTemplate(w, "url_card", item); err != nil {
+			log.Printf("web_handler: render card error: %v", err)
+			return
+		}
+	}
 }
 
 // HandleLogin serves GET /login - the login page.
@@ -195,7 +362,7 @@ func (h *WebHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-	h.renderTemplate(w, nil)
+	h.renderTemplate(w, "login", nil)
 }
 
 // HandleDetail serves GET /urls/{id} - the URL detail page.
@@ -230,36 +397,42 @@ func (h *WebHandler) HandleDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		URL     interface{}
-		TagList []string
+		URL        interface{}
+		TagList    []string
+		IsNew      bool
+		TTLOptions []config.ShortTTLOption
+		Categories []string
 	}{
-		URL:     urlEntity,
-		TagList: tagList,
+		URL:        urlEntity,
+		TagList:    tagList,
+		IsNew:      false,
+		TTLOptions: h.shortCfg.TTLOptions,
+		Categories: h.categories,
 	}
 
-	h.renderTemplate(w, data)
+	h.renderTemplate(w, "detail", data)
 }
 
-// HandleSearch serves GET /search - the search page.
-func (h *WebHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
+// HandleNew serves GET /urls/new - the create URL page.
+func (h *WebHandler) HandleNew(w http.ResponseWriter, r *http.Request) {
 	if !h.isAuthenticated(r) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
-	h.renderTemplate(w, nil)
-}
 
-// HandleShort serves GET /short - the short links management page.
-func (h *WebHandler) HandleShort(w http.ResponseWriter, r *http.Request) {
-	if !h.isAuthenticated(r) {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-	// Short links data will be loaded via API calls from the frontend.
-	// For server-rendered data, you would load short links here.
-	h.renderTemplate(w, struct {
-		ShortLinks interface{}
+	data := struct {
+		URL        interface{}
+		TagList    []string
+		IsNew      bool
+		TTLOptions []config.ShortTTLOption
+		Categories []string
 	}{
-		ShortLinks: nil,
-	})
+		URL:        &entity.URL{},
+		TagList:    nil,
+		IsNew:      true,
+		TTLOptions: h.shortCfg.TTLOptions,
+		Categories: h.categories,
+	}
+
+	h.renderTemplate(w, "detail", data)
 }

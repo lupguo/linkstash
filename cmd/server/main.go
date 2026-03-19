@@ -27,6 +27,7 @@ func main() {
 
 	// Wire URL handler with analysis usecase
 	app.URLHandler.SetAnalysisUsecase(app.AnalysisUsecase)
+	app.ShortURLHandler.SetAnalysisUsecase(app.AnalysisUsecase)
 
 	// Setup router
 	r := chi.NewRouter()
@@ -44,9 +45,9 @@ func main() {
 	// Web pages
 	r.Get("/", app.WebHandler.HandleIndex)
 	r.Get("/login", app.WebHandler.HandleLogin)
+	r.Get("/cards", app.WebHandler.HandleIndexCards)
+	r.Get("/urls/new", app.WebHandler.HandleNew)
 	r.Get("/urls/{id}", app.WebHandler.HandleDetail)
-	r.Get("/search", app.WebHandler.HandleSearch)
-	r.Get("/short", app.WebHandler.HandleShort)
 
 	fileServer := http.FileServer(http.Dir("web/static"))
 	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
@@ -66,6 +67,7 @@ func main() {
 
 		r.Post("/short-links", app.ShortURLHandler.HandleCreate)
 		r.Get("/short-links", app.ShortURLHandler.HandleList)
+		r.Put("/short-links/{id}", app.ShortURLHandler.HandleUpdate)
 		r.Delete("/short-links/{id}", app.ShortURLHandler.HandleDelete)
 	})
 

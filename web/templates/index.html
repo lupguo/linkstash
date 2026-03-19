@@ -1,7 +1,7 @@
 {{define "content"}}
-<div x-data="urlListPage()">
+<div x-data="urlListPage()" x-init="initScroll()">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
         <div>
             <h1 class="text-xl font-bold">
                 <span class="text-terminal-gray">$</span> ls -la /urls
@@ -10,39 +10,50 @@
                 // total: <span class="text-terminal-green">{{.Total}}</span> records
             </p>
         </div>
-        <button @click="showAddForm = !showAddForm"
-                class="terminal-btn px-4 py-2 rounded text-sm">
-            <span x-show="!showAddForm">> add_url</span>
-            <span x-show="showAddForm">> cancel</span>
-        </button>
+        <a href="/urls/new" class="terminal-btn px-4 py-2 rounded text-sm text-center">
+            > touch
+        </a>
     </div>
 
-    <!-- Add URL Form -->
-    <div x-show="showAddForm" x-cloak class="terminal-card p-4 rounded mb-6">
-        <form @submit.prevent="addURL()">
-            <div class="flex flex-col sm:flex-row gap-3">
-                <div class="flex-1">
-                    <label class="block text-xs text-terminal-gray mb-1">> url:</label>
-                    <input type="url" x-model="newURL"
-                           placeholder="https://example.com"
-                           class="terminal-input w-full px-3 py-2 rounded text-sm"
-                           required>
-                </div>
-                <div class="flex items-end">
-                    <button type="submit" class="terminal-btn px-4 py-2 rounded text-sm whitespace-nowrap"
-                            :disabled="addLoading">
-                        <span x-show="!addLoading">> submit</span>
-                        <span x-show="addLoading">saving...</span>
-                    </button>
-                </div>
+    <!-- Search Bar -->
+    <div class="terminal-card p-3 rounded mb-3">
+        <form @submit.prevent="doSearch()" class="flex flex-col gap-2">
+            <div class="flex gap-2">
+                <input type="text" x-model="searchQuery"
+                       placeholder="search bookmarks..."
+                       class="terminal-input flex-1 px-3 py-2 rounded text-sm">
+                <button type="submit" class="terminal-btn px-4 py-2 rounded text-sm whitespace-nowrap">
+                    > grep
+                </button>
+                <button type="button" @click="clearSearch()" x-show="searchQuery || isSearch"
+                        class="terminal-btn terminal-btn-danger px-3 py-2 rounded text-sm whitespace-nowrap">
+                    x
+                </button>
             </div>
-            <div x-show="addError" class="mt-2 text-terminal-red text-xs" x-text="addError"></div>
-            <div x-show="addSuccess" class="mt-2 text-terminal-green text-xs">URL added successfully. Refreshing...</div>
+            <!-- Search Type Buttons -->
+            <div class="flex items-center gap-2">
+                <span class="text-terminal-gray text-xs">mode:</span>
+                <button type="button" @click="searchType = 'keyword'"
+                        class="px-3 py-1 rounded text-xs border transition-all"
+                        :class="searchType === 'keyword' ? 'border-terminal-green bg-terminal-green/10 text-terminal-green' : 'border-terminal-border text-terminal-gray hover:text-terminal-green'">
+                    keyword
+                </button>
+                <button type="button" @click="searchType = 'semantic'"
+                        class="px-3 py-1 rounded text-xs border transition-all"
+                        :class="searchType === 'semantic' ? 'border-terminal-green bg-terminal-green/10 text-terminal-green' : 'border-terminal-border text-terminal-gray hover:text-terminal-green'">
+                    semantic
+                </button>
+                <button type="button" @click="searchType = 'hybrid'"
+                        class="px-3 py-1 rounded text-xs border transition-all"
+                        :class="searchType === 'hybrid' ? 'border-terminal-green bg-terminal-green/10 text-terminal-green' : 'border-terminal-border text-terminal-gray hover:text-terminal-green'">
+                    hybrid
+                </button>
+            </div>
         </form>
     </div>
 
     <!-- Filters -->
-    <div class="terminal-card p-3 rounded mb-6">
+    <div class="terminal-card p-3 rounded mb-4">
         <div class="flex flex-wrap gap-3 items-center text-sm">
             <div class="flex items-center gap-2">
                 <span class="text-terminal-gray text-xs">category:</span>
@@ -58,8 +69,8 @@
                 <span class="text-terminal-gray text-xs">sort:</span>
                 <select x-model="filters.sort" @change="applyFilters()"
                         class="terminal-input px-2 py-1 rounded text-xs">
-                    <option value="time">time</option>
                     <option value="weight">weight</option>
+                    <option value="time">time</option>
                 </select>
             </div>
             <div class="flex items-center gap-2">
@@ -71,75 +82,130 @@
                     <option value="100">100</option>
                 </select>
             </div>
+            <label class="flex items-center gap-1 cursor-pointer">
+                <input type="checkbox" x-model="filters.isShortURL" @change="applyFilters()"
+                       class="accent-green-500">
+                <span class="text-terminal-gray text-xs">short only</span>
+            </label>
         </div>
     </div>
 
-    <!-- URL List -->
-    <div id="url-list" class="space-y-3">
+    <!-- URL List (Grid) -->
+    <div id="url-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 items-start">
         {{range .URLs}}
         {{template "url_card" .}}
         {{end}}
-
-        {{if not .URLs}}
-        <div class="terminal-card p-8 rounded text-center">
-            <p class="text-terminal-gray">// no urls found</p>
-            <p class="text-terminal-gray text-xs mt-2">try adding a url or adjusting filters</p>
-        </div>
-        {{end}}
     </div>
 
-    <!-- Pagination -->
-    {{template "pagination" .}}
+    {{if not .URLs}}
+    <div class="terminal-card p-8 rounded text-center">
+        <p class="text-terminal-gray">// no urls found</p>
+        <p class="text-terminal-gray text-xs mt-2">try adding a url or adjusting filters</p>
+    </div>
+    {{end}}
+
+    <!-- Sentinel: IntersectionObserver target -->
+    <div x-ref="sentinel" x-show="hasMore" class="h-4"></div>
+
+    <!-- Loading indicator -->
+    <div x-show="isLoading" class="text-center py-4">
+        <span class="text-terminal-gray text-sm">loading...</span>
+    </div>
+
+    <!-- End of list -->
+    <div x-show="!hasMore && !isLoading" x-cloak class="text-center py-4">
+        <span class="text-terminal-gray text-xs">// end of list</span>
+    </div>
 </div>
 
 <script>
 function urlListPage() {
     return {
-        showAddForm: false,
-        newURL: '',
-        addLoading: false,
-        addError: '',
-        addSuccess: false,
+        searchQuery: '{{.Query}}',
+        searchType: '{{.SearchType}}' || 'keyword',
+        isSearch: {{.IsSearch}},
         filters: {
             category: '{{.FilterCategory}}',
             sort: '{{.FilterSort}}',
             size: '{{.Size}}',
+            isShortURL: {{.IsShortURL}},
         },
-        applyFilters() {
+        nextPage: {{.Page}} + 1,
+        totalPages: {{.TotalPages}},
+        isLoading: false,
+        hasMore: {{.Page}} < {{.TotalPages}},
+
+        initScroll() {
+            if (!this.hasMore) return;
+            const observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && this.hasMore && !this.isLoading) {
+                    this.loadMore();
+                }
+            }, { rootMargin: '200px' });
+            this.$nextTick(() => {
+                if (this.$refs.sentinel) {
+                    observer.observe(this.$refs.sentinel);
+                }
+            });
+        },
+
+        async loadMore() {
+            this.isLoading = true;
             const params = new URLSearchParams();
-            if (this.filters.category) params.set('category', this.filters.category);
+            params.set('page', this.nextPage);
+            params.set('size', this.filters.size);
             if (this.filters.sort) params.set('sort', this.filters.sort);
-            if (this.filters.size) params.set('size', this.filters.size);
+            if (this.filters.category) params.set('category', this.filters.category);
+            if (this.filters.isShortURL) params.set('is_shorturl', '1');
+            if (this.searchQuery) {
+                params.set('q', this.searchQuery);
+                params.set('search_type', this.searchType);
+            }
+
+            try {
+                const resp = await fetch('/cards?' + params.toString());
+                const html = await resp.text();
+                if (html.trim()) {
+                    document.getElementById('url-list').insertAdjacentHTML('beforeend', html);
+                    this.nextPage++;
+                    this.hasMore = this.nextPage <= this.totalPages;
+                } else {
+                    this.hasMore = false;
+                }
+            } catch (e) {
+                console.error('loadMore error:', e);
+            }
+            this.isLoading = false;
+        },
+
+        doSearch() {
+            if (!this.searchQuery.trim()) return;
+            const params = new URLSearchParams();
+            params.set('q', this.searchQuery);
+            params.set('search_type', this.searchType);
+            if (this.filters.category) params.set('category', this.filters.category);
+            params.set('sort', this.filters.sort);
+            params.set('size', this.filters.size);
+            if (this.filters.isShortURL) params.set('is_shorturl', '1');
             params.set('page', '1');
             window.location.href = '/?' + params.toString();
         },
-        async addURL() {
-            this.addError = '';
-            this.addSuccess = false;
-            this.addLoading = true;
-            try {
-                const token = getCookie('linkstash_token');
-                const resp = await fetch('/api/urls', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token,
-                    },
-                    body: JSON.stringify({ link: this.newURL }),
-                });
-                if (!resp.ok) {
-                    const data = await resp.json();
-                    this.addError = (data.error && data.error.message) || 'failed to add url';
-                    this.addLoading = false;
-                    return;
-                }
-                this.addSuccess = true;
-                this.newURL = '';
-                setTimeout(() => window.location.reload(), 500);
-            } catch (e) {
-                this.addError = 'network error';
+        clearSearch() {
+            this.searchQuery = '';
+            this.applyFilters();
+        },
+        applyFilters() {
+            const params = new URLSearchParams();
+            if (this.searchQuery) {
+                params.set('q', this.searchQuery);
+                params.set('search_type', this.searchType);
             }
-            this.addLoading = false;
+            if (this.filters.category) params.set('category', this.filters.category);
+            if (this.filters.sort) params.set('sort', this.filters.sort);
+            if (this.filters.size) params.set('size', this.filters.size);
+            if (this.filters.isShortURL) params.set('is_shorturl', '1');
+            params.set('page', '1');
+            window.location.href = '/?' + params.toString();
         },
     };
 }
@@ -147,6 +213,48 @@ function urlListPage() {
 function getCookie(name) {
     const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
     return v ? v.pop() : '';
+}
+
+function urlCard(data) {
+    return {
+        id: data.id,
+        link: data.link,
+        shortCode: data.shortCode,
+        linkCopied: false,
+        shortCopied: false,
+        copyLink() {
+            copyToClipboard(this.link);
+            this.linkCopied = true;
+            setTimeout(() => this.linkCopied = false, 2000);
+        },
+        copyShortLink() {
+            copyToClipboard(window.location.origin + '/s/' + this.shortCode);
+            this.shortCopied = true;
+            setTimeout(() => this.shortCopied = false, 2000);
+        },
+        async deleteURL() {
+            if (!confirm('$ rm url/' + this.id + ' -- are you sure?')) return;
+            try {
+                const token = getCookie('linkstash_token');
+                const resp = await fetch('/api/urls/' + this.id, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                });
+                if (resp.ok) window.location.reload();
+            } catch (e) {}
+        },
+    };
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+    });
 }
 </script>
 {{end}}
