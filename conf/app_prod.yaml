@@ -1,6 +1,6 @@
 server:
-  host: 0.0.0.0
-  port: 8080
+  host: 127.0.0.1   # 仅本地监听，通过 Caddy 反向代理
+  port: 8085         # 避免与其他服务冲突
 
 auth:
   secret_key: "linkstash-dev-secret-2024"
@@ -28,3 +28,7 @@ llm:
     url_categorize: |
       根据以下URL和标题，判断最合适的分类（建议从以下选项中选择，也可自定义）：
       技术、设计、产品、商业、科学、生活、工具、资讯、其他
+
+# proxy:
+#   http_proxy: "http://127.0.0.1:8118"       # HTTP/HTTPS proxy
+#   http_proxy: "socks5h://127.0.0.1:1080"    # SOCKS5 proxy (with remote DNS)
