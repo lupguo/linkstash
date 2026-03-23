@@ -12,6 +12,7 @@ import (
 	"github.com/lupguo/linkstash/app/domain/repos"
 	"github.com/lupguo/linkstash/app/domain/services"
 	"github.com/lupguo/linkstash/app/handler"
+	"github.com/lupguo/linkstash/app/infra/browser"
 	"github.com/lupguo/linkstash/app/infra/config"
 	"github.com/lupguo/linkstash/app/infra/db"
 	"github.com/lupguo/linkstash/app/infra/llm"
@@ -53,6 +54,10 @@ func ProvideHTTPClient(cfg *config.Config) *http.Client {
 	return config.NewHTTPClient(cfg.Proxy, 30*time.Second)
 }
 
+func ProvideBrowserService(cfg *config.Config) *browser.BrowserService {
+	return browser.NewBrowserService(cfg.Browser, cfg.Proxy.HTTPProxy)
+}
+
 func ProvideKeywordSearch(database *gorm.DB) *search.KeywordSearch {
 	return search.NewKeywordSearch(database)
 }
@@ -73,8 +78,9 @@ func ProvideWorkerService(
 	llmClient *llm.LLMClient,
 	cfg *config.Config,
 	httpClient *http.Client,
+	browserSvc *browser.BrowserService,
 ) *services.WorkerService {
-	return services.NewWorkerService(urlRepo, llmLogRepo, embeddingRepo, llmClient, cfg.LLM.Prompts, httpClient)
+	return services.NewWorkerService(urlRepo, llmLogRepo, embeddingRepo, llmClient, cfg.LLM.Prompts, httpClient, browserSvc)
 }
 
 func ProvideAuthConfig(cfg *config.Config) *config.AuthConfig {
@@ -102,6 +108,7 @@ var InfraSet = wire.NewSet(
 	ProvideDB,
 	ProvideHTTPClient,
 	ProvideLLMClient,
+	ProvideBrowserService,
 	ProvideKeywordSearch,
 	ProvideVectorSearch,
 )

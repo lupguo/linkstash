@@ -16,6 +16,15 @@ import (
 	"github.com/lupguo/linkstash/app/infra/llm"
 )
 
+// BrowserFetcher defines the interface for headless browser page fetching.
+// Defined in the domain layer to maintain Clean Architecture (no infra dependency).
+type BrowserFetcher interface {
+	Enabled() bool
+	HasProxy() bool
+	FetchPage(ctx context.Context, url string, useProxy bool) (string, error)
+	Close()
+}
+
 type WorkerService struct {
 	queue         chan uint
 	urlRepo       repos.URLRepo
@@ -24,6 +33,7 @@ type WorkerService struct {
 	llmClient     *llm.LLMClient
 	httpClient    *http.Client
 	prompts       map[string]string
+	browserSvc    BrowserFetcher
 	done          chan struct{}
 }
 
@@ -34,6 +44,7 @@ func NewWorkerService(
 	llmClient *llm.LLMClient,
 	prompts map[string]string,
 	httpClient *http.Client,
+	browserSvc BrowserFetcher,
 ) *WorkerService {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 10 * time.Second}
@@ -46,6 +57,7 @@ func NewWorkerService(
 		llmClient:     llmClient,
 		httpClient:    httpClient,
 		prompts:       prompts,
+		browserSvc:    browserSvc,
 		done:          make(chan struct{}),
 	}
 }
@@ -218,51 +230,112 @@ func (w *WorkerService) doProcessURL(ctx context.Context, urlID uint) error {
 	return nil
 }
 
-// fetchPageContent fetches the page content for analysis.
-// If the original URL returns an error or Cloudflare challenge page,
-// it falls back to the root domain to get basic site information.
+// fetchPageContent implements a 3-level fallback strategy:
+//   - Level 1: Optimized HTTP GET with browser-like headers
+//   - Level 2: Rod headless browser (no proxy)
+//   - Level 3: Rod headless browser with proxy
+//   - Fallback: Root domain HTTP request (existing logic)
 func (w *WorkerService) fetchPageContent(link string) (string, error) {
+	ctx := context.Background()
+
+	// Level 1: Optimized HTTP GET with custom headers
 	content, err := w.doFetch(link)
 	if err == nil && !isBlockedContent(content) {
+		slog.Debug("L1 HTTP fetch success", "component", "worker", "url", link)
 		return content, nil
 	}
+	if err != nil {
+		slog.Info("L1 HTTP fetch failed, trying browser", "component", "worker", "url", link, "error", err)
+	} else {
+		slog.Info("L1 HTTP fetch returned blocked content, trying browser", "component", "worker", "url", link)
+	}
 
-	// Fallback: try root domain
+	// Level 2: Rod headless browser (no proxy)
+	if w.browserSvc != nil && w.browserSvc.Enabled() {
+		brContent, brErr := w.browserSvc.FetchPage(ctx, link, false)
+		if brErr == nil && !isBlockedContent(brContent) {
+			slog.Debug("L2 browser fetch success", "component", "worker", "url", link)
+			return brContent, nil
+		}
+		if brErr != nil {
+			slog.Info("L2 browser fetch failed", "component", "worker", "url", link, "error", brErr)
+		} else {
+			slog.Info("L2 browser fetch returned blocked content", "component", "worker", "url", link)
+		}
+
+		// Level 3: Rod headless browser with proxy
+		if w.browserSvc.HasProxy() {
+			proxyContent, proxyErr := w.browserSvc.FetchPage(ctx, link, true)
+			if proxyErr == nil && !isBlockedContent(proxyContent) {
+				slog.Debug("L3 browser+proxy fetch success", "component", "worker", "url", link)
+				return proxyContent, nil
+			}
+			if proxyErr != nil {
+				slog.Info("L3 browser+proxy fetch failed", "component", "worker", "url", link, "error", proxyErr)
+			} else {
+				slog.Info("L3 browser+proxy fetch returned blocked content", "component", "worker", "url", link)
+			}
+		}
+	}
+
+	// Fallback: try root domain with HTTP
+	return w.fetchRootDomainFallback(link, content, err)
+}
+
+// fetchRootDomainFallback attempts to fetch the root domain as a last resort.
+func (w *WorkerService) fetchRootDomainFallback(link, prevContent string, prevErr error) (string, error) {
 	parsed, parseErr := neturl.Parse(link)
 	if parseErr != nil || parsed.Host == "" {
-		if err != nil {
-			return "", err
+		if prevErr != nil {
+			return "", prevErr
 		}
-		return content, nil // return whatever we got
+		return prevContent, nil
 	}
 
 	rootURL := parsed.Scheme + "://" + parsed.Host + "/"
 	if rootURL == link || rootURL+"/" == link {
-		if err != nil {
-			return "", err
+		if prevErr != nil {
+			return "", prevErr
 		}
-		return content, nil // already at root
+		return prevContent, nil
 	}
 
-	slog.Info(fmt.Sprintf("fallback to root domain(%s) for url(%s)", rootURL, link), "component", "worker")
+	slog.Info("fallback to root domain", "component", "worker", "root_url", rootURL, "url", link)
 	rootContent, rootErr := w.doFetch(rootURL)
 	if rootErr == nil && !isBlockedContent(rootContent) {
 		return rootContent, nil
 	}
 
 	// If root also fails, return original content if any
-	if content != "" {
-		return content, nil
+	if prevContent != "" {
+		return prevContent, nil
 	}
-	if err != nil {
-		return "", err
+	if prevErr != nil {
+		return "", prevErr
 	}
 	return "", rootErr
 }
 
-// doFetch fetches a URL and returns its body content (up to 50KB).
+// doFetch fetches a URL with browser-like headers and returns its body content (up to 50KB).
 func (w *WorkerService) doFetch(url string) (string, error) {
-	resp, err := w.httpClient.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+
+	// Set browser-like headers to reduce blocking
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7")
+	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Sec-Fetch-Dest", "document")
+	req.Header.Set("Sec-Fetch-Mode", "navigate")
+	req.Header.Set("Sec-Fetch-Site", "none")
+	req.Header.Set("Sec-Fetch-User", "?1")
+	req.Header.Set("Upgrade-Insecure-Requests", "1")
+
+	resp, err := w.httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("http get: %w", err)
 	}

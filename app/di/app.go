@@ -4,6 +4,7 @@ import (
 	"github.com/lupguo/linkstash/app/application"
 	"github.com/lupguo/linkstash/app/domain/services"
 	"github.com/lupguo/linkstash/app/handler"
+	"github.com/lupguo/linkstash/app/infra/browser"
 	"github.com/lupguo/linkstash/app/infra/config"
 )
 
@@ -17,4 +18,5 @@ type App struct {
 	WebHandler      *handler.WebHandler
 	AnalysisUsecase *application.AnalysisUsecase
 	VisitService    *services.VisitService
+	BrowserService  *browser.BrowserService
 }

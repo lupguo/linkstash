@@ -7,7 +7,10 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
@@ -41,7 +44,8 @@ func main() {
 	defer cleanup()
 
 	// Start async worker
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	app.AnalysisUsecase.Start(ctx)
 
 	// Wire URL handler with analysis usecase
@@ -94,10 +98,48 @@ func main() {
 
 	addr := app.Config.Server.Addr()
 	slog.Info("LinkStash starting", "addr", addr, "version", Version)
-	if err := http.ListenAndServe(addr, r); err != nil {
-		slog.Error("server failed", "error", err)
-		os.Exit(1)
+
+	// Create HTTP server for graceful shutdown
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: r,
 	}
+
+	// Listen for shutdown signals
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	// Start server in a goroutine
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("server failed", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	// Wait for shutdown signal
+	sig := <-sigCh
+	slog.Info("received shutdown signal", "signal", sig)
+
+	// Graceful shutdown with 10-second timeout
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	// Shutdown HTTP server
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		slog.Error("http server shutdown error", "error", err)
+	}
+
+	// Cancel worker context
+	cancel()
+
+	// Close browser instances
+	if app.BrowserService != nil {
+		slog.Info("closing browser instances", "component", "shutdown")
+		app.BrowserService.Close()
+	}
+
+	slog.Info("LinkStash stopped gracefully")
 }
 
 // staticCacheMiddleware adds Cache-Control headers for static assets.

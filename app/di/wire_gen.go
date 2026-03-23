@@ -12,6 +12,7 @@ import (
 	"github.com/lupguo/linkstash/app/application"
 	"github.com/lupguo/linkstash/app/domain/services"
 	"github.com/lupguo/linkstash/app/handler"
+	"github.com/lupguo/linkstash/app/infra/browser"
 	"github.com/lupguo/linkstash/app/infra/config"
 	"github.com/lupguo/linkstash/app/infra/db"
 	"github.com/lupguo/linkstash/app/infra/llm"
@@ -33,6 +34,7 @@ func InitializeApp(confPath string) (*App, error) {
 
 	httpClient := config.NewHTTPClient(cfg.Proxy, 30*time.Second)
 	llmClient := llm.NewLLMClient(cfg.LLM.Chat, cfg.LLM.Embedding, httpClient)
+	browserService := browser.NewBrowserService(cfg.Browser, cfg.Proxy.HTTPProxy)
 
 	keywordSearch := search.NewKeywordSearch(database)
 
@@ -50,7 +52,7 @@ func InitializeApp(confPath string) (*App, error) {
 
 	// Services
 	urlService := services.NewURLService(urlRepo)
-	workerService := services.NewWorkerService(urlRepo, llmLogRepo, embeddingRepo, llmClient, cfg.LLM.Prompts, httpClient)
+	workerService := services.NewWorkerService(urlRepo, llmLogRepo, embeddingRepo, llmClient, cfg.LLM.Prompts, httpClient, browserService)
 	searchService := services.NewSearchService(keywordSearch, vectorSearch, llmClient)
 	visitService := services.NewVisitService(visitRepo)
 
@@ -77,6 +79,7 @@ func InitializeApp(confPath string) (*App, error) {
 		WebHandler:      webHandler,
 		AnalysisUsecase: analysisUsecase,
 		VisitService:    visitService,
+		BrowserService:  browserService,
 	}
 	return app, nil
 }

@@ -18,6 +18,23 @@ type Config struct {
 	Short      ShortConfig    `yaml:"short"`
 	Categories []string       `yaml:"categories"`
 	Proxy      ProxyConfig    `yaml:"proxy"`
+	Browser    BrowserConfig  `yaml:"browser"`
+}
+
+// BrowserConfig holds Rod headless browser configuration.
+type BrowserConfig struct {
+	Enabled    bool   `yaml:"enabled"`     // Enable Rod fallback (default false)
+	BinPath    string `yaml:"bin_path"`    // Chromium binary path (empty = auto download)
+	Headless   *bool  `yaml:"headless"`    // Headless mode (default true)
+	TimeoutSec int    `yaml:"timeout_sec"` // Page timeout in seconds (default 30)
+}
+
+// IsHeadless returns whether to run in headless mode (defaults to true).
+func (b BrowserConfig) IsHeadless() bool {
+	if b.Headless == nil {
+		return true
+	}
+	return *b.Headless
 }
 
 // LogConfig holds logging configuration.
@@ -115,6 +132,11 @@ func Load(path string) (*Config, error) {
 	}
 	if cfg.Log.Format == "" {
 		cfg.Log.Format = "text"
+	}
+
+	// Browser defaults
+	if cfg.Browser.TimeoutSec == 0 {
+		cfg.Browser.TimeoutSec = 30
 	}
 
 	// Default TTL options if not configured
