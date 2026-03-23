@@ -1,11 +1,11 @@
 #!/bin/bash
 # LinkStash PopClip Extension - Save selected URL to LinkStash
 
-LINKSTASH_SERVER="${LINKSTASH_SERVER:-}"
-LINKSTASH_TOKEN="${LINKSTASH_TOKEN:-}"
+LINKSTASH_SERVER="${POPCLIP_OPTION_SERVER:-}"
+LINKSTASH_TOKEN="${POPCLIP_OPTION_TOKEN:-}"
 
 if [ -z "$LINKSTASH_SERVER" ] || [ -z "$LINKSTASH_TOKEN" ]; then
-    echo "Error: LINKSTASH_SERVER and LINKSTASH_TOKEN must be set" >&2
+    echo "Error: Please configure Server URL and API Token in PopClip extension settings" >&2
     exit 1
 fi
 

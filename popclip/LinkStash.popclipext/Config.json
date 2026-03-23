@@ -4,6 +4,20 @@
   "name": "LinkStash",
   "icon": "iconify:mdi:link-plus",
   "description": "Save selected URL to LinkStash",
+  "options": [
+    {
+      "identifier": "server",
+      "label": "Server URL",
+      "type": "string",
+      "description": "LinkStash server address (e.g. https://linkstash.example.com)"
+    },
+    {
+      "identifier": "token",
+      "label": "API Token",
+      "type": "password",
+      "description": "LinkStash API authentication token"
+    }
+  ],
   "actions": [{
     "title": "Save to LinkStash",
     "icon": "iconify:mdi:link-plus",
