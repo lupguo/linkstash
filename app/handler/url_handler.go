@@ -1,10 +1,16 @@
 package handler
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/lupguo/linkstash/app/application"
@@ -14,6 +20,12 @@ import (
 var defaultIcons = []string{
 	"🔗", "📚", "💻", "🌐", "📝", "🔧", "🎯", "📦", "🚀", "⭐",
 	"📌", "🔍", "💡", "📊", "🎨", "🔒", "📡", "🧩", "🗂️", "✨",
+}
+
+// validThemes is the whitelist of allowed theme color keys.
+var validThemes = map[string]bool{
+	"": true, "green": true, "red": true, "cyan": true,
+	"yellow": true, "purple": true, "orange": true, "blue": true,
 }
 
 // URLHandler provides HTTP handlers for URL CRUD operations.
@@ -44,6 +56,10 @@ func (h *URLHandler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 
 	url, err := h.usecase.AddURL(req.Link)
 	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint") {
+			writeError(w, http.StatusConflict, "CONFLICT", "该链接已存在")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
 	}
@@ -53,6 +69,18 @@ func (h *URLHandler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		url.Icon = defaultIcons[rand.Intn(len(defaultIcons))]
 		_ = h.usecase.UpdateURL(url)
 	}
+
+	// Async fetch favicon
+	go func(urlID uint, link string) {
+		favicon := fetchFavicon(link)
+		if favicon != "" {
+			u, _ := h.usecase.GetURL(urlID)
+			if u != nil {
+				u.Favicon = favicon
+				h.usecase.UpdateURL(u)
+			}
+		}
+	}(url.ID, url.Link)
 
 	// Trigger async LLM analysis
 	if h.analysisUsecase != nil {
@@ -161,12 +189,38 @@ func (h *URLHandler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	if v, ok := updates["visit_count"]; ok {
 		existing.VisitCount = int(v.(float64))
+		existing.AutoWeight = float64(existing.VisitCount)
 	}
 	if v, ok := updates["color"]; ok {
-		existing.Color = v.(string)
+		color := v.(string)
+		if !validThemes[color] {
+			color = ""
+		}
+		existing.Color = color
 	}
 	if v, ok := updates["icon"]; ok {
 		existing.Icon = v.(string)
+	}
+	if v, ok := updates["short_code"]; ok {
+		existing.ShortCode = v.(string)
+	}
+	if v, ok := updates["status"]; ok {
+		existing.Status = v.(string)
+	}
+	if v, ok := updates["favicon"]; ok {
+		existing.Favicon = v.(string)
+	}
+	if v, ok := updates["ttl"]; ok {
+		ttlStr, _ := v.(string)
+		if ttlStr == "" {
+			existing.ShortExpiresAt = nil
+		} else {
+			ttl, err := parseTTL(ttlStr)
+			if err == nil && ttl != nil {
+				t := time.Now().Add(*ttl)
+				existing.ShortExpiresAt = &t
+			}
+		}
 	}
 
 	if err := h.usecase.UpdateURL(existing); err != nil {
@@ -234,4 +288,38 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 			"message": message,
 		},
 	})
+}
+
+// fetchFavicon fetches the favicon for a URL from DuckDuckGo icons service
+// and returns a base64 data URI. Returns "" on failure.
+func fetchFavicon(link string) string {
+	parsed, err := url.Parse(link)
+	if err != nil || parsed.Host == "" {
+		return ""
+	}
+	domain := parsed.Host
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(fmt.Sprintf("https://icons.duckduckgo.com/ip3/%s.ico", domain))
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return ""
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024)) // max 512KB
+	if err != nil || len(body) == 0 {
+		return ""
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "image/x-icon"
+	}
+
+	encoded := base64.StdEncoding.EncodeToString(body)
+	return fmt.Sprintf("data:%s;base64,%s", contentType, encoded)
 }

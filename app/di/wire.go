@@ -4,6 +4,9 @@
 package di
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/google/wire"
 	"github.com/lupguo/linkstash/app/application"
 	"github.com/lupguo/linkstash/app/domain/repos"
@@ -42,12 +45,12 @@ func ProvideEmbeddingRepo(database *gorm.DB) repos.EmbeddingRepo {
 	return db.NewEmbeddingRepoImpl(database)
 }
 
-func ProvideShortURLRepo(database *gorm.DB) repos.ShortURLRepo {
-	return db.NewShortURLRepoImpl(database)
+func ProvideLLMClient(cfg *config.Config, httpClient *http.Client) *llm.LLMClient {
+	return llm.NewLLMClient(cfg.LLM.Chat, cfg.LLM.Embedding, httpClient)
 }
 
-func ProvideLLMClient(cfg *config.Config) *llm.LLMClient {
-	return llm.NewLLMClient(cfg.LLM.Chat, cfg.LLM.Embedding)
+func ProvideHTTPClient(cfg *config.Config) *http.Client {
+	return config.NewHTTPClient(cfg.Proxy, 30*time.Second)
 }
 
 func ProvideKeywordSearch(database *gorm.DB) *search.KeywordSearch {
@@ -69,20 +72,27 @@ func ProvideWorkerService(
 	embeddingRepo repos.EmbeddingRepo,
 	llmClient *llm.LLMClient,
 	cfg *config.Config,
+	httpClient *http.Client,
 ) *services.WorkerService {
-	return services.NewWorkerService(urlRepo, llmLogRepo, embeddingRepo, llmClient, cfg.LLM.Prompts)
+	return services.NewWorkerService(urlRepo, llmLogRepo, embeddingRepo, llmClient, cfg.LLM.Prompts, httpClient)
 }
 
 func ProvideAuthConfig(cfg *config.Config) *config.AuthConfig {
 	return &cfg.Auth
 }
 
+func ProvideShortConfig(cfg *config.Config) *config.ShortConfig {
+	return &cfg.Short
+}
+
 func ProvideWebHandler(
 	urlUsecase *application.URLUsecase,
 	searchUsecase *application.SearchUsecase,
 	authCfg *config.AuthConfig,
+	shortCfg *config.ShortConfig,
+	cfg *config.Config,
 ) *handler.WebHandler {
-	return handler.NewWebHandler(urlUsecase, searchUsecase, authCfg, "web")
+	return handler.NewWebHandler(urlUsecase, searchUsecase, authCfg, shortCfg, cfg.Categories, "web")
 }
 
 // --- Provider sets ---
@@ -90,6 +100,7 @@ func ProvideWebHandler(
 var InfraSet = wire.NewSet(
 	ProvideConfig,
 	ProvideDB,
+	ProvideHTTPClient,
 	ProvideLLMClient,
 	ProvideKeywordSearch,
 	ProvideVectorSearch,
@@ -100,14 +111,12 @@ var RepoSet = wire.NewSet(
 	ProvideVisitRepo,
 	ProvideLLMLogRepo,
 	ProvideEmbeddingRepo,
-	ProvideShortURLRepo,
 )
 
 var ServiceSet = wire.NewSet(
 	services.NewURLService,
 	ProvideWorkerService,
 	services.NewSearchService,
-	services.NewShortURLService,
 	services.NewVisitService,
 )
 
@@ -115,7 +124,6 @@ var UsecaseSet = wire.NewSet(
 	application.NewURLUsecase,
 	application.NewAnalysisUsecase,
 	application.NewSearchUsecase,
-	application.NewShortURLUsecase,
 )
 
 var HandlerSet = wire.NewSet(
@@ -125,6 +133,7 @@ var HandlerSet = wire.NewSet(
 	handler.NewShortURLHandler,
 	ProvideWebHandler,
 	ProvideAuthConfig,
+	ProvideShortConfig,
 )
 
 // InitializeApp creates a fully wired App instance.

@@ -21,8 +21,9 @@ type URL struct {
 	VisitCount     int        `gorm:"default:0" json:"visit_count"`
 	ShortCode      string     `gorm:"index;size:16" json:"short_code,omitempty"`
 	ShortExpiresAt *time.Time `json:"short_expires_at,omitempty"`
-	Color          string     `gorm:"size:20;default:''" json:"color,omitempty"`
-	Icon           string     `gorm:"size:10;default:''" json:"icon,omitempty"`
+	Color          string     `gorm:"size:20;default:''" json:"color"`
+	Icon           string     `gorm:"size:10;default:''" json:"icon"`
+	Favicon        string     `gorm:"type:text;default:''" json:"favicon,omitempty"`
 }
 
 func (URL) TableName() string { return "t_urls" }

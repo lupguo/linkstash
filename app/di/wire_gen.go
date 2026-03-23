@@ -7,6 +7,8 @@
 package di
 
 import (
+	"time"
+
 	"github.com/lupguo/linkstash/app/application"
 	"github.com/lupguo/linkstash/app/domain/services"
 	"github.com/lupguo/linkstash/app/handler"
@@ -29,7 +31,8 @@ func InitializeApp(confPath string) (*App, error) {
 		return nil, err
 	}
 
-	llmClient := llm.NewLLMClient(cfg.LLM.Chat, cfg.LLM.Embedding)
+	httpClient := config.NewHTTPClient(cfg.Proxy, 30*time.Second)
+	llmClient := llm.NewLLMClient(cfg.LLM.Chat, cfg.LLM.Embedding, httpClient)
 
 	keywordSearch := search.NewKeywordSearch(database)
 
@@ -38,7 +41,6 @@ func InitializeApp(confPath string) (*App, error) {
 	visitRepo := db.NewVisitRepoImpl(database)
 	llmLogRepo := db.NewLLMLogRepoImpl(database)
 	embeddingRepo := db.NewEmbeddingRepoImpl(database)
-	shortURLRepo := db.NewShortURLRepoImpl(database)
 
 	// Vector search (depends on embeddingRepo)
 	vectorSearch := search.NewVectorSearch(embeddingRepo)
@@ -48,24 +50,23 @@ func InitializeApp(confPath string) (*App, error) {
 
 	// Services
 	urlService := services.NewURLService(urlRepo)
-	workerService := services.NewWorkerService(urlRepo, llmLogRepo, embeddingRepo, llmClient, cfg.LLM.Prompts)
+	workerService := services.NewWorkerService(urlRepo, llmLogRepo, embeddingRepo, llmClient, cfg.LLM.Prompts, httpClient)
 	searchService := services.NewSearchService(keywordSearch, vectorSearch, llmClient)
-	shortURLService := services.NewShortURLService(shortURLRepo)
 	visitService := services.NewVisitService(visitRepo)
 
 	// Usecases
 	urlUsecase := application.NewURLUsecase(urlService)
 	analysisUsecase := application.NewAnalysisUsecase(workerService)
 	searchUsecase := application.NewSearchUsecase(searchService, urlRepo)
-	shortURLUsecase := application.NewShortURLUsecase(shortURLService)
 
 	// Handlers
 	authCfg := &cfg.Auth
+	shortCfg := &cfg.Short
 	authHandler := handler.NewAuthHandler(authCfg)
 	urlHandler := handler.NewURLHandler(urlUsecase)
 	searchHandler := handler.NewSearchHandler(searchUsecase)
-	shortURLHandler := handler.NewShortURLHandler(shortURLUsecase)
-	webHandler := handler.NewWebHandler(urlUsecase, searchUsecase, authCfg, "web")
+	shortURLHandler := handler.NewShortURLHandler(urlUsecase)
+	webHandler := handler.NewWebHandler(urlUsecase, searchUsecase, authCfg, shortCfg, cfg.Categories, "web")
 
 	app := &App{
 		Config:          cfg,

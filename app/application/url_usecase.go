@@ -1,6 +1,8 @@
 package application
 
 import (
+	"time"
+
 	"github.com/lupguo/linkstash/app/domain/entity"
 	"github.com/lupguo/linkstash/app/domain/services"
 )
@@ -36,11 +38,38 @@ func (uc *URLUsecase) DeleteURL(id uint) error {
 }
 
 // ListURLs returns a paginated, sorted, and filtered list of URLs.
-func (uc *URLUsecase) ListURLs(page, size int, sort, category, tags string) ([]*entity.URL, int64, error) {
-	return uc.urlService.ListURLs(page, size, sort, category, tags)
+func (uc *URLUsecase) ListURLs(page, size int, sort, category, tags string, isShortURL bool) ([]*entity.URL, int64, error) {
+	return uc.urlService.ListURLs(page, size, sort, category, tags, isShortURL)
 }
 
 // RecordVisit increments the visit counter for the URL.
 func (uc *URLUsecase) RecordVisit(id uint) error {
 	return uc.urlService.RecordVisit(id)
+}
+
+// --- Short link pass-through methods ---
+
+// GenerateShortLink delegates short link creation to the domain service.
+func (uc *URLUsecase) GenerateShortLink(longURL, customCode string, ttl *time.Duration) (*entity.URL, error) {
+	return uc.urlService.GenerateShortLink(longURL, customCode, ttl)
+}
+
+// ResolveShortCode delegates code resolution to the domain service.
+func (uc *URLUsecase) ResolveShortCode(code string) (*entity.URL, error) {
+	return uc.urlService.ResolveShortCode(code)
+}
+
+// UpdateShortLink delegates updating code/long_url to the domain service.
+func (uc *URLUsecase) UpdateShortLink(id uint, code, longURL string) (*entity.URL, error) {
+	return uc.urlService.UpdateShortLink(id, code, longURL)
+}
+
+// ListShortLinks delegates listing short links to the domain service.
+func (uc *URLUsecase) ListShortLinks(page, size int) ([]*entity.URL, int64, error) {
+	return uc.urlService.ListShortLinks(page, size)
+}
+
+// ClearShortCode removes the short code from a URL without deleting the URL record.
+func (uc *URLUsecase) ClearShortCode(id uint) error {
+	return uc.urlService.ClearShortCode(id)
 }

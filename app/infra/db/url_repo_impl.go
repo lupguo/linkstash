@@ -57,7 +57,7 @@ func (r *URLRepoImpl) Delete(id uint) error {
 // List returns a paginated, sorted, and filtered list of URLs together with the total count.
 // sort: "time" orders by created_at DESC; "weight" orders by (auto_weight + manual_weight) DESC.
 // category and tags are optional filters (tags uses LIKE matching).
-func (r *URLRepoImpl) List(page, size int, sort, category, tags string) ([]*entity.URL, int64, error) {
+func (r *URLRepoImpl) List(page, size int, sort, category, tags string, isShortURL bool) ([]*entity.URL, int64, error) {
 	var urls []*entity.URL
 	var total int64
 
@@ -69,6 +69,9 @@ func (r *URLRepoImpl) List(page, size int, sort, category, tags string) ([]*enti
 	}
 	if tags != "" {
 		query = query.Where("tags LIKE ?", "%"+tags+"%")
+	}
+	if isShortURL {
+		query = query.Where("short_code != '' AND short_code IS NOT NULL")
 	}
 
 	// total count (before pagination)
@@ -111,5 +114,44 @@ func (r *URLRepoImpl) IncrementVisit(id uint) error {
 		"visit_count":   gorm.Expr("visit_count + 1"),
 		"auto_weight":   gorm.Expr("auto_weight + 1"),
 		"last_visit_at": time.Now(),
+	}).Error
+}
+
+// GetByShortCode retrieves a URL by its short code.
+func (r *URLRepoImpl) GetByShortCode(code string) (*entity.URL, error) {
+	var url entity.URL
+	if err := r.db.Where("short_code = ?", code).First(&url).Error; err != nil {
+		return nil, err
+	}
+	return &url, nil
+}
+
+// ListByShortCode returns a paginated list of URLs that have a short code, ordered by created_at DESC.
+func (r *URLRepoImpl) ListByShortCode(page, size int) ([]*entity.URL, int64, error) {
+	var urls []*entity.URL
+	var total int64
+
+	query := r.db.Model(&entity.URL{}).Where("short_code != '' AND short_code IS NOT NULL")
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * size
+	if offset < 0 {
+		offset = 0
+	}
+	if err := query.Order("created_at DESC").Offset(offset).Limit(size).Find(&urls).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return urls, total, nil
+}
+
+// ClearShortCode removes the short code (and expiration) from a URL without deleting the URL record.
+func (r *URLRepoImpl) ClearShortCode(id uint) error {
+	return r.db.Model(&entity.URL{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"short_code":      "",
+		"short_expires_at": nil,
 	}).Error
 }
