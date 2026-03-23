@@ -13,6 +13,7 @@ export function detailPage() {
     isNew: isNew,
     editing: autoEdit,
     saving: false,
+    reanalyzing: false,
     message: '',
     messageType: '',
     enableShortCode: isNew ? false : !!url.ShortCode,
@@ -35,6 +36,28 @@ export function detailPage() {
     startEdit() {
       this.editing = true;
       this.message = '';
+    },
+
+    async reanalyze() {
+      if (!confirm('> reanalyze -- re-fetch and re-analyze this URL?')) return;
+      this.reanalyzing = true;
+      this.message = '';
+      try {
+        const resp = await apiRequest('/api/urls/' + url.ID + '/reanalyze', 'POST');
+        if (resp.ok) {
+          this.message = 'reanalysis triggered, refreshing...';
+          this.messageType = 'success';
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          const d = await resp.json();
+          this.message = (d.error && d.error.message) || 'reanalyze failed';
+          this.messageType = 'error';
+        }
+      } catch (e) {
+        this.message = 'network error';
+        this.messageType = 'error';
+      }
+      this.reanalyzing = false;
     },
 
     async clearFavicon() {

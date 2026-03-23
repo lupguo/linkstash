@@ -267,6 +267,43 @@ func (h *URLHandler) HandleVisit(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+// HandleReanalyze handles POST /api/urls/:id/reanalyze - re-trigger async LLM analysis.
+// Resets the URL status to "pending", clears LLM-generated fields, and enqueues for re-processing.
+func (h *URLHandler) HandleReanalyze(w http.ResponseWriter, r *http.Request) {
+	id, err := parseUintParam(r, "id")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid id")
+		return
+	}
+
+	existing, err := h.usecase.GetURL(id)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+
+	// Reset status and clear LLM-generated fields for fresh analysis
+	existing.Status = "pending"
+	existing.Title = ""
+	existing.Keywords = ""
+	existing.Description = ""
+	existing.Category = ""
+	existing.Tags = ""
+
+	if err := h.usecase.UpdateURL(existing); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	// Re-enqueue for async analysis (same path as new URL creation)
+	if h.analysisUsecase != nil {
+		h.analysisUsecase.EnqueueAnalysis(id)
+	}
+
+	slog.Info("url reanalysis triggered", "component", "url_handler", "url_id", id, "link", existing.Link)
+	writeJSON(w, http.StatusOK, existing)
+}
+
 func parseUintParam(r *http.Request, name string) (uint, error) {
 	v, err := strconv.ParseUint(chi.URLParam(r, name), 10, 64)
 	if err != nil {

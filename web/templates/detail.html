@@ -288,7 +288,14 @@
         </button>
         {{else}}
         <template x-if="!editing">
-            <button @click="startEdit()" class="terminal-btn px-4 py-2 rounded text-sm">&gt; edit</button>
+            <div class="flex gap-3">
+                <button @click="startEdit()" class="terminal-btn px-4 py-2 rounded text-sm">&gt; edit</button>
+                <button @click="reanalyze()" class="terminal-btn px-4 py-2 rounded text-sm"
+                        :disabled="reanalyzing">
+                    <span x-show="!reanalyzing">&gt; reanalyze</span>
+                    <span x-show="reanalyzing">reanalyzing...</span>
+                </button>
+            </div>
         </template>
         <template x-if="editing">
             <div class="flex gap-3">

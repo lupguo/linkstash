@@ -87,6 +87,7 @@ func main() {
 		r.Put("/urls/{id}", app.URLHandler.HandleUpdate)
 		r.Delete("/urls/{id}", app.URLHandler.HandleDelete)
 		r.Post("/urls/{id}/visit", app.URLHandler.HandleVisit)
+		r.Post("/urls/{id}/reanalyze", app.URLHandler.HandleReanalyze)
 
 		r.Get("/search", app.SearchHandler.HandleSearch)
 
