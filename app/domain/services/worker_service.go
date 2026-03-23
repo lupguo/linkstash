@@ -21,6 +21,7 @@ type WorkerService struct {
 	llmLogRepo    repos.LLMLogRepo
 	embeddingRepo repos.EmbeddingRepo
 	llmClient     *llm.LLMClient
+	httpClient    *http.Client
 	prompts       map[string]string
 	done          chan struct{}
 }
@@ -31,13 +32,18 @@ func NewWorkerService(
 	embeddingRepo repos.EmbeddingRepo,
 	llmClient *llm.LLMClient,
 	prompts map[string]string,
+	httpClient *http.Client,
 ) *WorkerService {
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: 10 * time.Second}
+	}
 	return &WorkerService{
 		queue:         make(chan uint, 100),
 		urlRepo:       urlRepo,
 		llmLogRepo:    llmLogRepo,
 		embeddingRepo: embeddingRepo,
 		llmClient:     llmClient,
+		httpClient:    httpClient,
 		prompts:       prompts,
 		done:          make(chan struct{}),
 	}
@@ -115,8 +121,7 @@ func (w *WorkerService) doProcessURL(ctx context.Context, urlID uint) error {
 	}
 
 	// 2. Fetch page content
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(url.Link)
+	resp, err := w.httpClient.Get(url.Link)
 	if err != nil {
 		return fmt.Errorf("fetch url: %w", err)
 	}
@@ -135,6 +140,7 @@ func (w *WorkerService) doProcessURL(ctx context.Context, urlID uint) error {
 	chatLog := &entity.LLMLog{
 		URLID:        urlID,
 		RequestType:  "chat",
+		Provider:     w.llmClient.ChatProvider(),
 		ModelName:    w.llmClient.ChatModel(),
 		PromptKey:    "url_analysis",
 		InputContent: pageContent,
@@ -187,6 +193,7 @@ func (w *WorkerService) doProcessURL(ctx context.Context, urlID uint) error {
 	embLog := &entity.LLMLog{
 		URLID:        urlID,
 		RequestType:  "embedding",
+		Provider:     w.llmClient.EmbeddingProvider(),
 		ModelName:    w.llmClient.EmbeddingModel(),
 		PromptKey:    "embedding",
 		InputContent: embText,

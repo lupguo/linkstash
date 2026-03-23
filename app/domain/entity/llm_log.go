@@ -6,6 +6,7 @@ type LLMLog struct {
 	gorm.Model
 	URLID         uint    `gorm:"index" json:"url_id"`
 	RequestType   string  `gorm:"index" json:"request_type"` // chat | embedding
+	Provider      string  `json:"provider"`
 	ModelName     string  `gorm:"column:model" json:"model"`
 	PromptKey     string  `json:"prompt_key"`
 	InputContent  string  `gorm:"type:text" json:"input_content"`

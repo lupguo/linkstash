@@ -30,13 +30,176 @@
                     {{.URL.Link}}
                 </a>
                 <button @click="copyText('{{.URL.Link}}')" class="text-xs text-terminal-gray hover:text-terminal-green transition-colors">[copy]</button>
-                {{if .URL.ShortCode}}
-                <span class="text-terminal-gray text-xs">|</span>
-                <span class="text-purple-400 text-sm">/s/{{.URL.ShortCode}}</span>
-                <button @click="copyText(window.location.origin + '/s/' + '{{.URL.ShortCode}}')" class="text-xs text-terminal-gray hover:text-terminal-green transition-colors">[copy]</button>
-                {{end}}
             </div>
             {{end}}
+        </div>
+
+        <!-- Short Code & TTL Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <span class="text-terminal-gray text-xs mb-1 flex items-center gap-2">
+                    short_code:
+                    {{if .IsNew}}
+                    <label class="inline-flex items-center gap-1 cursor-pointer">
+                        <input type="checkbox" x-model="enableShortCode" class="accent-green-500">
+                        <span class="text-terminal-green text-xs">enable</span>
+                    </label>
+                    {{else}}
+                    <template x-if="editing">
+                        <label class="inline-flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" x-model="enableShortCode" class="accent-green-500">
+                            <span class="text-terminal-green text-xs">enable</span>
+                        </label>
+                    </template>
+                    {{end}}
+                </span>
+                {{if .IsNew}}
+                <template x-if="enableShortCode">
+                    <input type="text" x-model="form.short_code"
+                           placeholder="Custom code or leave empty for auto-generate"
+                           maxlength="16"
+                           class="terminal-input w-full px-3 py-2 rounded text-sm">
+                </template>
+                <template x-if="!enableShortCode">
+                    <p class="text-sm text-terminal-gray">-- disabled --</p>
+                </template>
+                {{else}}
+                <template x-if="!editing">
+                    <p class="text-sm">{{if .URL.ShortCode}}<a href="/s/{{.URL.ShortCode}}" target="_blank" class="text-purple-400 hover:underline">/s/{{.URL.ShortCode}}</a>{{else}}<span class="text-terminal-gray">-- none --</span>{{end}}</p>
+                </template>
+                <template x-if="editing && enableShortCode">
+                    <input type="text" x-model="form.short_code"
+                           placeholder="Custom code or leave empty for auto-generate"
+                           maxlength="16"
+                           class="terminal-input w-full px-3 py-2 rounded text-sm">
+                </template>
+                <template x-if="editing && !enableShortCode">
+                    <p class="text-sm text-terminal-gray">-- disabled --</p>
+                </template>
+                {{end}}
+            </div>
+            <div>
+                <span class="text-terminal-gray text-xs block mb-1">ttl:</span>
+                {{if .IsNew}}
+                <template x-if="enableShortCode">
+                    <select x-model="form.ttl" class="terminal-input w-full px-3 py-2 rounded text-sm">
+                        {{range .TTLOptions}}
+                        <option value="{{.Value}}">{{.Label}}</option>
+                        {{end}}
+                    </select>
+                </template>
+                <template x-if="!enableShortCode">
+                    <p class="text-sm text-terminal-gray">-- disabled --</p>
+                </template>
+                {{else}}
+                <template x-if="!editing">
+                    <p class="text-sm text-terminal-gray">
+                        {{if .URL.ShortExpiresAt}}expires: {{.URL.ShortExpiresAt.Format "2006-01-02 15:04"}}{{else}}-- never --{{end}}
+                    </p>
+                </template>
+                <template x-if="editing && enableShortCode">
+                    <select x-model="form.ttl" class="terminal-input w-full px-3 py-2 rounded text-sm">
+                        {{range .TTLOptions}}
+                        <option value="{{.Value}}">{{.Label}}</option>
+                        {{end}}
+                    </select>
+                </template>
+                <template x-if="editing && !enableShortCode">
+                    <p class="text-sm text-terminal-gray">-- disabled --</p>
+                </template>
+                {{end}}
+            </div>
+        </div>
+
+        <!-- Icon & Color Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <span class="text-terminal-gray text-xs block mb-1">icon:</span>
+                {{if .IsNew}}
+                <input type="text" x-model="form.icon"
+                       placeholder="Emoji, e.g. 🔗 📚 💻 (auto if empty)"
+                       class="terminal-input w-full px-3 py-2 rounded text-sm">
+                {{else}}
+                <template x-if="!editing">
+                    <span class="text-sm">{{if .URL.Icon}}{{.URL.Icon}}{{else}}<span class="text-terminal-gray">-- none --</span>{{end}}</span>
+                </template>
+                <template x-if="editing">
+                    <input type="text" x-model="form.icon"
+                           placeholder="Emoji, e.g. 🔗 📚 💻"
+                           class="terminal-input w-full px-3 py-2 rounded text-sm">
+                </template>
+                {{end}}
+            </div>
+            <div>
+                <span class="text-terminal-gray text-xs block mb-1">color:</span>
+                {{if .IsNew}}
+                <div class="flex gap-2 items-center flex-wrap">
+                    <button type="button" @click="form.color = ''"
+                            :class="form.color === '' ? 'ring-2 ring-white' : ''"
+                            class="w-6 h-6 rounded-full bg-terminal-dark border border-terminal-border cursor-pointer" title="none"></button>
+                    <button type="button" @click="form.color = 'green'"
+                            :class="form.color === 'green' ? 'ring-2 ring-white' : ''"
+                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#00ff41" title="green"></button>
+                    <button type="button" @click="form.color = 'red'"
+                            :class="form.color === 'red' ? 'ring-2 ring-white' : ''"
+                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#ff6b6b" title="red"></button>
+                    <button type="button" @click="form.color = 'cyan'"
+                            :class="form.color === 'cyan' ? 'ring-2 ring-white' : ''"
+                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#4ecdc4" title="cyan"></button>
+                    <button type="button" @click="form.color = 'yellow'"
+                            :class="form.color === 'yellow' ? 'ring-2 ring-white' : ''"
+                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#ffd93d" title="yellow"></button>
+                    <button type="button" @click="form.color = 'purple'"
+                            :class="form.color === 'purple' ? 'ring-2 ring-white' : ''"
+                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#c084fc" title="purple"></button>
+                    <button type="button" @click="form.color = 'orange'"
+                            :class="form.color === 'orange' ? 'ring-2 ring-white' : ''"
+                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#fb923c" title="orange"></button>
+                    <button type="button" @click="form.color = 'blue'"
+                            :class="form.color === 'blue' ? 'ring-2 ring-white' : ''"
+                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#60a5fa" title="blue"></button>
+                </div>
+                {{else}}
+                <template x-if="!editing">
+                    <div class="flex items-center gap-2">
+                        {{if .URL.Color}}
+                        <span class="inline-block w-4 h-4 rounded-full card-theme-{{.URL.Color}}" style="border-width:2px"></span>
+                        <span class="text-sm">{{.URL.Color}}</span>
+                        {{else}}
+                        <span class="text-terminal-gray text-sm">-- default --</span>
+                        {{end}}
+                    </div>
+                </template>
+                <template x-if="editing">
+                    <div class="flex gap-2 items-center flex-wrap">
+                        <button type="button" @click="form.color = ''"
+                                :class="form.color === '' ? 'ring-2 ring-white' : ''"
+                                class="w-6 h-6 rounded-full bg-terminal-dark border border-terminal-border cursor-pointer" title="none"></button>
+                        <button type="button" @click="form.color = 'green'"
+                                :class="form.color === 'green' ? 'ring-2 ring-white' : ''"
+                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#00ff41" title="green"></button>
+                        <button type="button" @click="form.color = 'red'"
+                                :class="form.color === 'red' ? 'ring-2 ring-white' : ''"
+                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#ff6b6b" title="red"></button>
+                        <button type="button" @click="form.color = 'cyan'"
+                                :class="form.color === 'cyan' ? 'ring-2 ring-white' : ''"
+                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#4ecdc4" title="cyan"></button>
+                        <button type="button" @click="form.color = 'yellow'"
+                                :class="form.color === 'yellow' ? 'ring-2 ring-white' : ''"
+                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#ffd93d" title="yellow"></button>
+                        <button type="button" @click="form.color = 'purple'"
+                                :class="form.color === 'purple' ? 'ring-2 ring-white' : ''"
+                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#c084fc" title="purple"></button>
+                        <button type="button" @click="form.color = 'orange'"
+                                :class="form.color === 'orange' ? 'ring-2 ring-white' : ''"
+                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#fb923c" title="orange"></button>
+                        <button type="button" @click="form.color = 'blue'"
+                                :class="form.color === 'blue' ? 'ring-2 ring-white' : ''"
+                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#60a5fa" title="blue"></button>
+                    </div>
+                </template>
+                {{end}}
+            </div>
         </div>
 
         <!-- Title -->
@@ -101,9 +264,14 @@
             <div>
                 <span class="text-terminal-gray text-xs block mb-1">category:</span>
                 {{if .IsNew}}
-                <input type="text" x-model="form.category"
-                       placeholder="Category name, e.g. Development, Design"
+                <input type="text" x-model="form.category" list="category-options"
+                       placeholder="选择或输入分类"
                        class="terminal-input w-full px-3 py-2 rounded text-sm">
+                <datalist id="category-options">
+                    {{range .Categories}}
+                    <option value="{{.}}">
+                    {{end}}
+                </datalist>
                 {{else}}
                 <template x-if="!editing">
                     <span class="inline-block px-2 py-1 border border-terminal-cyan text-terminal-cyan text-xs rounded">
@@ -111,9 +279,16 @@
                     </span>
                 </template>
                 <template x-if="editing">
-                    <input type="text" x-model="form.category"
-                           placeholder="Category name, e.g. Development, Design"
+                    <div>
+                    <input type="text" x-model="form.category" list="category-options"
+                           placeholder="选择或输入分类"
                            class="terminal-input w-full px-3 py-2 rounded text-sm">
+                    <datalist id="category-options">
+                        {{range .Categories}}
+                        <option value="{{.}}">
+                        {{end}}
+                    </datalist>
+                    </div>
                 </template>
                 {{end}}
             </div>
@@ -144,113 +319,53 @@
             </div>
         </div>
 
-        <!-- Short Code & TTL Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-                <span class="text-terminal-gray text-xs block mb-1">short_code:</span>
-                {{if .IsNew}}
-                <input type="text" x-model="form.short_code"
-                       placeholder="Custom code or leave empty for auto-generate"
-                       maxlength="16"
-                       class="terminal-input w-full px-3 py-2 rounded text-sm">
-                {{else}}
-                <template x-if="!editing">
-                    <p class="text-sm">{{if .URL.ShortCode}}<span class="text-purple-400">/s/{{.URL.ShortCode}}</span>{{else}}<span class="text-terminal-gray">-- none --</span>{{end}}</p>
-                </template>
-                <template x-if="editing">
-                    <input type="text" x-model="form.short_code"
-                           placeholder="Custom code or leave empty for auto-generate"
-                           maxlength="16"
-                           class="terminal-input w-full px-3 py-2 rounded text-sm">
-                </template>
-                {{end}}
-            </div>
-            <div>
-                <span class="text-terminal-gray text-xs block mb-1">ttl:</span>
-                {{if .IsNew}}
-                <select x-model="form.ttl" class="terminal-input w-full px-3 py-2 rounded text-sm">
-                    {{range .TTLOptions}}
-                    <option value="{{.Value}}">{{.Label}}</option>
-                    {{end}}
-                </select>
-                {{else}}
-                <template x-if="!editing">
-                    <p class="text-sm text-terminal-gray">
-                        {{if .URL.ShortExpiresAt}}expires: {{.URL.ShortExpiresAt.Format "2006-01-02 15:04"}}{{else}}-- never --{{end}}
-                    </p>
-                </template>
-                <template x-if="editing">
-                    <select x-model="form.ttl" class="terminal-input w-full px-3 py-2 rounded text-sm">
-                        {{range .TTLOptions}}
-                        <option value="{{.Value}}">{{.Label}}</option>
-                        {{end}}
-                    </select>
-                </template>
-                {{end}}
-            </div>
-        </div>
-
-        <!-- Color & Icon Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-                <span class="text-terminal-gray text-xs block mb-1">color:</span>
-                {{if .IsNew}}
-                <input type="text" x-model="form.color"
-                       placeholder="#00ff41 or color name"
-                       class="terminal-input w-full px-3 py-2 rounded text-sm">
-                {{else}}
-                <template x-if="!editing">
-                    <div class="flex items-center gap-2">
-                        {{if .URL.Color}}
-                        <span class="inline-block w-4 h-4 rounded border border-terminal-border" style="background-color: {{.URL.Color}}"></span>
-                        <span class="text-sm">{{.URL.Color}}</span>
-                        {{else}}
-                        <span class="text-terminal-gray text-sm">-- default --</span>
-                        {{end}}
-                    </div>
-                </template>
-                <template x-if="editing">
-                    <input type="text" x-model="form.color"
-                           placeholder="#00ff41 or color name"
-                           class="terminal-input w-full px-3 py-2 rounded text-sm">
-                </template>
-                {{end}}
-            </div>
-            <div>
-                <span class="text-terminal-gray text-xs block mb-1">icon:</span>
-                {{if .IsNew}}
-                <input type="text" x-model="form.icon"
-                       placeholder="Emoji, e.g. 🔗 📚 💻 (auto if empty)"
-                       class="terminal-input w-full px-3 py-2 rounded text-sm">
-                {{else}}
-                <template x-if="!editing">
-                    <span class="text-sm">{{if .URL.Icon}}{{.URL.Icon}}{{else}}<span class="text-terminal-gray">-- none --</span>{{end}}</span>
-                </template>
-                <template x-if="editing">
-                    <input type="text" x-model="form.icon"
-                           placeholder="Emoji, e.g. 🔗 📚 💻"
-                           class="terminal-input w-full px-3 py-2 rounded text-sm">
-                </template>
-                {{end}}
-            </div>
-        </div>
-
         {{if not .IsNew}}
+        <!-- Favicon -->
+        <div>
+            <span class="text-terminal-gray text-xs block mb-1">favicon:</span>
+            <div class="flex items-center gap-3">
+                {{if .URL.Favicon}}
+                <img src="{{.URL.Favicon | safeURL}}" class="w-6 h-6 rounded border border-terminal-border"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block'">
+                <span class="text-terminal-gray text-xs" style="display:none">⚠️ render failed</span>
+                <span class="text-terminal-gray text-xs">({{len .URL.Favicon}} bytes)</span>
+                <template x-if="editing">
+                    <button type="button" @click="clearFavicon()"
+                            class="text-xs text-terminal-red hover:underline">[clear favicon]</button>
+                </template>
+                {{else}}
+                <span class="text-terminal-gray text-sm">-- none --</span>
+                {{end}}
+            </div>
+        </div>
+
         <!-- Status & Metrics Row -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-terminal-border">
             <div>
                 <span class="text-terminal-gray text-xs block mb-1">status:</span>
-                {{if eq .URL.Status "pending"}}
-                <span class="px-2 py-0.5 border border-yellow-500 text-yellow-500 text-xs rounded">pending</span>
-                {{else if eq .URL.Status "analyzing"}}
-                <span class="px-2 py-0.5 border border-blue-400 text-blue-400 text-xs rounded">analyzing</span>
-                {{else if eq .URL.Status "ready"}}
-                <span class="px-2 py-0.5 border border-terminal-green text-terminal-green text-xs rounded">ready</span>
-                {{else if eq .URL.Status "failed"}}
-                <span class="px-2 py-0.5 border border-terminal-red text-terminal-red text-xs rounded">failed</span>
-                {{else}}
-                <span class="px-2 py-0.5 border border-terminal-gray text-terminal-gray text-xs rounded">{{.URL.Status}}</span>
-                {{end}}
+                <template x-if="!editing">
+                    <div>
+                    {{if eq .URL.Status "pending"}}
+                    <span class="px-2 py-0.5 border border-yellow-500 text-yellow-500 text-xs rounded">pending</span>
+                    {{else if eq .URL.Status "analyzing"}}
+                    <span class="px-2 py-0.5 border border-blue-400 text-blue-400 text-xs rounded">analyzing</span>
+                    {{else if eq .URL.Status "ready"}}
+                    <span class="px-2 py-0.5 border border-terminal-green text-terminal-green text-xs rounded">ready</span>
+                    {{else if eq .URL.Status "failed"}}
+                    <span class="px-2 py-0.5 border border-terminal-red text-terminal-red text-xs rounded">failed</span>
+                    {{else}}
+                    <span class="px-2 py-0.5 border border-terminal-gray text-terminal-gray text-xs rounded">{{.URL.Status}}</span>
+                    {{end}}
+                    </div>
+                </template>
+                <template x-if="editing">
+                    <select x-model="form.status" class="terminal-input w-full px-2 py-1 rounded text-xs">
+                        <option value="pending">pending</option>
+                        <option value="analyzing">analyzing</option>
+                        <option value="ready">ready</option>
+                        <option value="failed">failed</option>
+                    </select>
+                </template>
             </div>
             <div>
                 <span class="text-terminal-gray text-xs block mb-1">visits:</span>
@@ -341,12 +456,14 @@
 <script>
 function detailPage() {
     const isNew = {{.IsNew}};
+    const autoEdit = !isNew && new URLSearchParams(window.location.search).has('edit');
     return {
         isNew: isNew,
-        editing: false,
+        editing: autoEdit,
         saving: false,
         message: '',
         messageType: '',
+        enableShortCode: isNew ? false : !!'{{.URL.ShortCode}}',
         form: {
             link: '',
             title: isNew ? '' : `{{js .URL.Title}}`,
@@ -360,10 +477,35 @@ function detailPage() {
             ttl: '',
             color: isNew ? '' : '{{.URL.Color}}',
             icon: isNew ? '' : '{{.URL.Icon}}',
+            status: isNew ? 'pending' : '{{.URL.Status}}',
         },
         startEdit() {
             this.editing = true;
             this.message = '';
+        },
+        async clearFavicon() {
+            try {
+                const token = getCookie('linkstash_token');
+                const resp = await fetch('/api/urls/{{.URL.ID}}', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token,
+                    },
+                    body: JSON.stringify({ favicon: '' }),
+                });
+                if (resp.ok) {
+                    this.message = 'favicon cleared';
+                    this.messageType = 'success';
+                    setTimeout(() => window.location.reload(), 500);
+                } else {
+                    this.message = 'failed to clear favicon';
+                    this.messageType = 'error';
+                }
+            } catch (e) {
+                this.message = 'network error';
+                this.messageType = 'error';
+            }
         },
         copyText(text) {
             navigator.clipboard.writeText(text).catch(() => {
@@ -429,8 +571,8 @@ function detailPage() {
                     });
                 }
 
-                // Step 3: Create short link if code or ttl provided
-                if (this.form.short_code.trim() || this.form.ttl) {
+                // Step 3: Create short link if checkbox enabled and code or ttl provided
+                if (this.enableShortCode && (this.form.short_code.trim() || this.form.ttl)) {
                     const shortBody = { long_url: this.form.link.trim() };
                     if (this.form.short_code.trim()) shortBody.code = this.form.short_code.trim();
                     if (this.form.ttl) shortBody.ttl = this.form.ttl;
@@ -477,7 +619,15 @@ function detailPage() {
                     visit_count: this.form.visit_count,
                     color: this.form.color,
                     icon: this.form.icon,
+                    status: this.form.status,
                 };
+                if (this.enableShortCode) {
+                    updates.short_code = this.form.short_code;
+                    updates.ttl = this.form.ttl;
+                } else {
+                    updates.short_code = '';
+                    updates.ttl = '';
+                }
                 const resp = await fetch('/api/urls/{{.URL.ID}}', {
                     method: 'PUT',
                     headers: {
@@ -494,9 +644,9 @@ function detailPage() {
                     return;
                 }
 
-                // Update short link if code changed
+                // Update short link if enabled and code changed
                 const origShortCode = '{{.URL.ShortCode}}';
-                if (this.form.short_code.trim() !== origShortCode) {
+                if (this.enableShortCode && this.form.short_code.trim() !== origShortCode) {
                     if (this.form.short_code.trim() && !origShortCode) {
                         // Create new short link
                         const shortBody = { long_url: '{{.URL.Link}}' };

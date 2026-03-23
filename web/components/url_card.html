@@ -1,26 +1,17 @@
 {{define "url_card"}}
-<div class="terminal-card rounded p-3 group relative"
-     {{if .Color}}style="border-color: {{.Color}}"{{end}}
-     x-data="urlCard({ id: {{.ID}}, link: '{{.Link}}', shortCode: '{{.ShortCode}}' })">
-    <!-- Hover Action Buttons -->
-    <div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-        <a href="/urls/{{.ID}}" @click.stop
-           class="text-xs text-terminal-gray hover:text-terminal-cyan transition-colors" title="edit">[edit]</a>
-        <button @click.stop="copyLink()" class="text-xs text-terminal-gray hover:text-terminal-green transition-colors" title="copy url">
-            <span x-show="!linkCopied">[copy]</span>
-            <span x-show="linkCopied" class="text-terminal-green">[ok]</span>
-        </button>
-        <button @click.stop="deleteURL()" class="text-xs text-terminal-gray hover:text-terminal-red transition-colors" title="delete">[del]</button>
-    </div>
+<!-- Wrapper: relative container to hold grid slot at fixed height -->
+<div class="relative card-wrapper">
+  <!-- Actual card: static by default, absolute on hover to expand -->
+  <div class="terminal-card rounded p-3 group card-default {{if .Color}}card-theme-{{.Color}}{{end}}"
+       x-data="urlCard({ id: {{.ID}}, link: '{{.Link}}', shortCode: '{{.ShortCode}}' })">
 
     <!-- Title with Favicon -->
-    <div class="flex items-start gap-2 pr-16">
-        <img src="https://icons.duckduckgo.com/ip3/{{domain .Link}}.ico"
-             class="w-4 h-4 rounded flex-shrink-0 mt-0.5"
-             onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block'"
-             loading="lazy">
-        <span class="w-4 h-4 flex-shrink-0 mt-0.5 text-sm leading-4"
-              style="display:none">{{if .Icon}}{{.Icon}}{{else}}🔗{{end}}</span>
+    <div class="flex items-start gap-2 pr-4">
+        {{if .Favicon}}
+        <img src="{{.Favicon | safeURL}}" class="w-4 h-4 rounded flex-shrink-0 mt-0.5">
+        {{else}}
+        <span class="w-4 h-4 flex-shrink-0 mt-0.5 text-sm leading-4">{{if .Icon}}{{.Icon}}{{else}}🔗{{end}}</span>
+        {{end}}
         <h3 class="text-sm font-semibold truncate flex-1">
             {{if .Title}}<a href="{{.Link}}" target="_blank" rel="noopener noreferrer" class="hover:underline">{{.Title}}</a>{{else}}<a href="{{.Link}}" target="_blank" rel="noopener noreferrer" class="hover:underline">{{.Link}}</a>{{end}}
         </h3>
@@ -38,39 +29,61 @@
     </p>
     {{end}}
 
-    <!-- Description -->
+    <!-- Description (single line default, full on hover) -->
     {{if .Description}}
-    <p class="text-xs text-terminal-gray mt-1 line-clamp-1 ml-6">{{.Description}}</p>
+    <p class="text-xs text-terminal-gray mt-1 ml-6 card-desc">{{.Description}}</p>
     {{end}}
 
-    <!-- Meta: short code + category + visits + date in one row -->
-    <div class="flex flex-wrap items-center gap-2 mt-2 text-xs ml-6">
+    <!-- Hover-only: extra info (keywords, tags) -->
+    <div class="card-hover-extra text-xs mt-1 ml-6 space-y-0.5">
+      {{if .Keywords}}<p class="text-terminal-gray"><span class="text-terminal-gray/60">keywords:</span> {{.Keywords}}</p>{{end}}
+      {{if .Tags}}<p class="text-terminal-gray"><span class="text-terminal-gray/60">tags:</span> {{.Tags}}</p>{{end}}
+    </div>
+
+    <!-- Flex spacer: pushes bottom content down in fixed-height mode -->
+    <div class="flex-1"></div>
+
+    <!-- Category + Status row -->
+    <div class="flex items-center gap-2 mt-1 text-xs ml-6">
+        {{if .Category}}
+        <span class="px-1.5 py-0.5 border border-terminal-cyan text-terminal-cyan rounded truncate">
+            {{.Category}}
+        </span>
+        {{end}}
+        {{if eq .Status "pending"}}
+        <span class="px-1.5 py-0.5 border border-yellow-500 text-yellow-500 rounded flex-shrink-0">pending</span>
+        {{else if eq .Status "analyzing"}}
+        <span class="px-1.5 py-0.5 border border-blue-400 text-blue-400 rounded flex-shrink-0">analyzing</span>
+        {{else if eq .Status "failed"}}
+        <span class="px-1.5 py-0.5 border border-terminal-red text-terminal-red rounded flex-shrink-0">failed</span>
+        {{else if eq .Status "ready"}}
+        <span class="px-1.5 py-0.5 border border-terminal-green/50 text-terminal-green/70 rounded flex-shrink-0">ready</span>
+        {{end}}
+    </div>
+
+    <!-- Bottom row: short link + weight + visits + date -->
+    <div class="flex items-center gap-2 mt-1 text-xs ml-6">
         {{if .ShortCode}}
-        <!-- Short Link TAG (first position, click to copy) -->
-        <button @click.stop="copyShortLink()" class="px-1.5 py-0.5 border border-purple-400 text-purple-400 rounded hover:bg-purple-400/10 transition-colors cursor-pointer" title="click to copy short link">
+        <button @click.stop="copyShortLink()" class="px-1.5 py-0.5 border border-purple-400 text-purple-400 rounded hover:bg-purple-400/10 transition-colors cursor-pointer flex-shrink-0" title="click to copy short link">
             <span x-show="!shortCopied">/s/<span x-text="shortCode">{{.ShortCode}}</span></span>
             <span x-show="shortCopied" class="text-terminal-green">copied!</span>
         </button>
         {{end}}
-
-        {{if .Category}}
-        <span class="px-1.5 py-0.5 border border-terminal-cyan text-terminal-cyan rounded">
-            {{.Category}}
-        </span>
-        {{end}}
-
-        <!-- Status Badge -->
-        {{if eq .Status "pending"}}
-        <span class="px-1.5 py-0.5 border border-yellow-500 text-yellow-500 rounded">pending</span>
-        {{else if eq .Status "analyzing"}}
-        <span class="px-1.5 py-0.5 border border-blue-400 text-blue-400 rounded">analyzing</span>
-        {{else if eq .Status "failed"}}
-        <span class="px-1.5 py-0.5 border border-terminal-red text-terminal-red rounded">failed</span>
-        {{end}}
-
-        <span class="text-terminal-gray ml-auto">
-            {{.VisitCount}}v &middot; {{.CreatedAt.Format "01-02"}}
+        <span class="ml-auto text-terminal-gray whitespace-nowrap">
+            {{printf "%.2f" .AutoWeight}} &middot; {{.VisitCount}}v &middot; {{.CreatedAt.Format "01-02"}}
         </span>
     </div>
+
+    <!-- Hover-only: action buttons at bottom -->
+    <div class="card-hover-actions items-center justify-end gap-2 mt-2 pt-2 border-t border-terminal-border">
+        <a href="/urls/{{.ID}}?edit=1" @click.stop
+           class="text-xs text-terminal-gray hover:text-terminal-cyan transition-colors" title="edit">[edit]</a>
+        <button @click.stop="copyLink()" class="text-xs text-terminal-gray hover:text-terminal-green transition-colors" title="copy url">
+            <span x-show="!linkCopied">[copy]</span>
+            <span x-show="linkCopied" class="text-terminal-green">[ok]</span>
+        </button>
+        <button @click.stop="deleteURL()" class="text-xs text-terminal-gray hover:text-terminal-red transition-colors" title="delete">[del]</button>
+    </div>
+  </div>
 </div>
 {{end}}
