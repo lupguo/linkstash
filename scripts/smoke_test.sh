@@ -81,7 +81,7 @@ check_status "Wrong secret returns 401" "401" "$STATUS"
 # Test 4: Get JWT token
 TOKEN_RESP=$(curl -s -X POST $SERVER/api/auth/token \
     -H "Content-Type: application/json" \
-    -d '{"secret_key":"linkstash-dev-secret-2024"}')
+    -d '{"secret_key":"clark"}')
 check "Get JWT token" '"token"' "$TOKEN_RESP"
 TOKEN=$(json_field "$TOKEN_RESP" "['token']")
 export LINKSTASH_TOKEN="$TOKEN"
@@ -203,8 +203,8 @@ check "Update status" '"status":"ready"' "$UPDATE_ST_RESP"
 # Test: Update color and icon
 UPDATE_CI=$(curl -s -X PUT "$SERVER/api/urls/${URL_A_ID}" \
     -H "$AUTH" -H "Content-Type: application/json" \
-    -d '{"color":"#ff6b6b","icon":"🚀"}')
-check "Update color" '"color":"#ff6b6b"' "$UPDATE_CI"
+    -d '{"color":"red","icon":"🚀"}')
+check "Update color" '"color":"red"' "$UPDATE_CI"
 check "Update icon" '"icon":"🚀"' "$UPDATE_CI"
 
 echo ""
@@ -304,6 +304,8 @@ echo -e "${CYAN}--- Phase 6: CLI Commands ---${NC}"
 CLI="./bin/linkstash"
 # Fallback to ./linkstash if bin/ not found
 [ -f "$CLI" ] || CLI="./linkstash"
+
+export LINKSTASH_SECRET_KEY="clark"
 
 # CLI add (unique URL)
 CLI_ADD=$($CLI add "https://wikipedia.org/smoke-${UNIQUE}" 2>&1)
