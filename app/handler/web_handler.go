@@ -2,11 +2,13 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"html/template"
-	"log"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -46,7 +48,9 @@ func NewWebHandler(
 	componentPattern := filepath.Join(templateDir, "components", "*.html")
 	componentFiles, err := filepath.Glob(componentPattern)
 	if err != nil {
-		log.Fatalf("web_handler: glob component error: %v", err)
+		slog.Error("glob component error", "component", "web_handler", "error", err)
+		fmt.Fprintf(os.Stderr, "web_handler: glob component error: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Custom template functions
@@ -72,7 +76,9 @@ func NewWebHandler(
 		files := append([]string{layoutFile, pageFile}, componentFiles...)
 		t, err := template.New("").Funcs(funcMap).ParseFiles(files...)
 		if err != nil {
-			log.Fatalf("web_handler: parse template %s error: %v", page, err)
+			slog.Error("parse template error", "component", "web_handler", "page", page, "error", err)
+			fmt.Fprintf(os.Stderr, "web_handler: parse template %s error: %v\n", page, err)
+			os.Exit(1)
 		}
 		tmplMap[page] = t
 	}
@@ -168,13 +174,13 @@ func (h *WebHandler) isAuthenticated(r *http.Request) bool {
 func (h *WebHandler) renderTemplate(w http.ResponseWriter, page string, data interface{}) {
 	t, ok := h.tmplMap[page]
 	if !ok {
-		log.Printf("web_handler: unknown page template: %s", page)
+		slog.Error("unknown page template", "component", "web_handler", "page", page)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := t.ExecuteTemplate(w, "layout", data); err != nil {
-		log.Printf("web_handler: render error (%s): %v", page, err)
+		slog.Error("render error", "component", "web_handler", "page", page, "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -228,7 +234,7 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
 		results, searchTotal, err := h.searchUsecase.Search(ctx, query, searchType, page, size)
 		if err != nil {
-			log.Printf("web_handler: search error: %v", err)
+			slog.Error("search error", "component", "web_handler", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -240,7 +246,7 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		// Normal list mode
 		urls, listTotal, err := h.urlUsecase.ListURLs(page, size, sort, category, tags, isShortURL)
 		if err != nil {
-			log.Printf("web_handler: list urls error: %v", err)
+			slog.Error("list urls error", "component", "web_handler", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -315,7 +321,7 @@ func (h *WebHandler) HandleIndexCards(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
 		results, _, err := h.searchUsecase.Search(ctx, query, searchType, page, size)
 		if err != nil {
-			log.Printf("web_handler: search error: %v", err)
+			slog.Error("search error", "component", "web_handler", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -325,7 +331,7 @@ func (h *WebHandler) HandleIndexCards(w http.ResponseWriter, r *http.Request) {
 	} else {
 		urls, _, err := h.urlUsecase.ListURLs(page, size, sort, category, tags, isShortURL)
 		if err != nil {
-			log.Printf("web_handler: list urls error: %v", err)
+			slog.Error("list urls error", "component", "web_handler", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -349,7 +355,7 @@ func (h *WebHandler) HandleIndexCards(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	for _, item := range displayURLs {
 		if err := t.ExecuteTemplate(w, "url_card", item); err != nil {
-			log.Printf("web_handler: render card error: %v", err)
+			slog.Error("render card error", "component", "web_handler", "error", err)
 			return
 		}
 	}

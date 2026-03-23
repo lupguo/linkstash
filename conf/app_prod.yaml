@@ -10,6 +10,11 @@ auth:
 database:
   path: "./data/linkstash.db"
 
+log:
+  level: "info"
+  file: "./logs/app.log"
+  format: "text"
+
 llm:
   chat:
     endpoint: "https://api.openai.com/v1/chat/completions"

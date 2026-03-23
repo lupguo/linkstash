@@ -9,13 +9,13 @@
       "identifier": "server",
       "label": "Server URL",
       "type": "string",
-      "description": "LinkStash server address (e.g. https://linkstash.example.com)"
+      "description": "LinkStash server address (e.g. https://linkstash.sapaude.tech)"
     },
     {
-      "identifier": "token",
-      "label": "API Token",
-      "type": "password",
-      "description": "LinkStash API authentication token"
+      "identifier": "secret_key",
+      "label": "Secret Key",
+      "type": "secret",
+      "description": "LinkStash authentication secret key (configured in server auth.secret_key)"
     }
   ],
   "actions": [{

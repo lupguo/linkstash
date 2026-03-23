@@ -10,6 +10,11 @@ auth:
 database:
   path: "./data/linkstash.db"
 
+log:
+  level: "debug"
+  file: "./logs/app.log"
+  format: "text"
+
 short:
   ttl_options:
     - label: "永久"

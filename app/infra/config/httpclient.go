@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -24,26 +24,26 @@ func NewHTTPClient(proxyCfg ProxyConfig, timeout time.Duration) *http.Client {
 	if proxyCfg.HTTPProxy != "" {
 		proxyURL, err := url.Parse(proxyCfg.HTTPProxy)
 		if err != nil {
-			log.Printf("[Proxy] invalid proxy URL %q: %v, falling back to direct", proxyCfg.HTTPProxy, err)
+			slog.Warn("invalid proxy URL, falling back to direct", "component", "proxy", "url", proxyCfg.HTTPProxy, "error", err)
 		} else {
 			switch proxyURL.Scheme {
 			case "http", "https":
 				transport.Proxy = http.ProxyURL(proxyURL)
-				log.Printf("[Proxy] using HTTP proxy: %s", proxyCfg.HTTPProxy)
+				slog.Info("using HTTP proxy", "component", "proxy", "url", proxyCfg.HTTPProxy)
 			case "socks5", "socks5h":
 				dialer, err := proxy.FromURL(proxyURL, proxy.Direct)
 				if err != nil {
-					log.Printf("[Proxy] failed to create SOCKS dialer for %q: %v, falling back to direct", proxyCfg.HTTPProxy, err)
+					slog.Warn("failed to create SOCKS dialer, falling back to direct", "component", "proxy", "url", proxyCfg.HTTPProxy, "error", err)
 				} else {
 					// proxy.Dialer only provides Dial(network, addr), wrap it for DialContext
 					transport.DialContext = nil
 					transport.Dial = func(network, addr string) (net.Conn, error) {
 						return dialer.Dial(network, addr)
 					}
-					log.Printf("[Proxy] using SOCKS proxy: %s", proxyCfg.HTTPProxy)
+					slog.Info("using SOCKS proxy", "component", "proxy", "url", proxyCfg.HTTPProxy)
 				}
 			default:
-				log.Printf("[Proxy] unsupported proxy scheme %q, falling back to direct", proxyURL.Scheme)
+				slog.Warn("unsupported proxy scheme, falling back to direct", "component", "proxy", "scheme", proxyURL.Scheme)
 			}
 		}
 	}

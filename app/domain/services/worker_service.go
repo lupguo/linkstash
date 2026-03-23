@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -52,9 +52,9 @@ func NewWorkerService(
 func (w *WorkerService) Enqueue(urlID uint) {
 	select {
 	case w.queue <- urlID:
-		log.Printf("[Worker] enqueued url_id=%d for analysis", urlID)
+		slog.Debug("enqueued url for analysis", "component", "worker", "url_id", urlID)
 	default:
-		log.Printf("[Worker] queue full, dropping url_id=%d", urlID)
+		slog.Warn("queue full, dropping url", "component", "worker", "url_id", urlID)
 	}
 }
 
@@ -64,7 +64,7 @@ func (w *WorkerService) Start(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
-				log.Println("[Worker] stopped")
+				slog.Info("worker stopped", "component", "worker")
 				return
 			case urlID := <-w.queue:
 				w.processWithRetry(ctx, urlID)
@@ -77,14 +77,14 @@ func (w *WorkerService) RecoverPending() {
 	for _, status := range []string{"pending", "analyzing"} {
 		urls, err := w.urlRepo.FindByStatus(status)
 		if err != nil {
-			log.Printf("[Worker] recover %s error: %v", status, err)
+			slog.Error("recover error", "component", "worker", "status", status, "error", err)
 			continue
 		}
 		for _, u := range urls {
 			w.Enqueue(u.ID)
 		}
 		if len(urls) > 0 {
-			log.Printf("[Worker] recovered %d urls with status=%s", len(urls), status)
+			slog.Info("recovered urls", "component", "worker", "count", len(urls), "status", status)
 		}
 	}
 }
@@ -94,12 +94,12 @@ func (w *WorkerService) processWithRetry(ctx context.Context, urlID uint) {
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
 			backoff := time.Duration(1<<uint(attempt-1)) * time.Second
-			log.Printf("[Worker] retrying url_id=%d attempt=%d after %v", urlID, attempt, backoff)
+			slog.Info("retrying url processing", "component", "worker", "url_id", urlID, "attempt", attempt, "backoff", backoff)
 			time.Sleep(backoff)
 		}
 
 		if err := w.doProcessURL(ctx, urlID); err != nil {
-			log.Printf("[Worker] url_id=%d attempt=%d error: %v", urlID, attempt, err)
+			slog.Error("url processing failed", "component", "worker", "url_id", urlID, "attempt", attempt, "error", err)
 			if attempt == maxRetries {
 				w.setURLFailed(urlID, err.Error())
 			}
@@ -219,18 +219,18 @@ func (w *WorkerService) doProcessURL(ctx context.Context, urlID uint) error {
 		return fmt.Errorf("save embedding: %w", err)
 	}
 
-	log.Printf("[Worker] successfully processed url_id=%d title=%q", urlID, parsed.Title)
+	slog.Info("successfully processed url", "component", "worker", "url_id", urlID, "title", parsed.Title)
 	return nil
 }
 
 func (w *WorkerService) setURLFailed(urlID uint, errMsg string) {
 	url, err := w.urlRepo.GetByID(urlID)
 	if err != nil {
-		log.Printf("[Worker] get url for failure url_id=%d: %v", urlID, err)
+		slog.Error("get url for failure", "component", "worker", "url_id", urlID, "error", err)
 		return
 	}
 	url.Status = "failed"
 	if err := w.urlRepo.Update(url); err != nil {
-		log.Printf("[Worker] set failed url_id=%d: %v", urlID, err)
+		slog.Error("set url failed status", "component", "worker", "url_id", urlID, "error", err)
 	}
 }

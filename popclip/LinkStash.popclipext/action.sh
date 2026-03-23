@@ -1,17 +1,47 @@
 #!/bin/bash
 # LinkStash PopClip Extension - Save selected URL to LinkStash
+# Automatically exchanges secret_key for JWT, then saves the URL.
 
 LINKSTASH_SERVER="${POPCLIP_OPTION_SERVER:-}"
-LINKSTASH_TOKEN="${POPCLIP_OPTION_TOKEN:-}"
+LINKSTASH_SECRET_KEY="${POPCLIP_OPTION_SECRET_KEY:-}"
 
-if [ -z "$LINKSTASH_SERVER" ] || [ -z "$LINKSTASH_TOKEN" ]; then
-    echo "Error: Please configure Server URL and API Token in PopClip extension settings" >&2
+if [ -z "$LINKSTASH_SERVER" ] || [ -z "$LINKSTASH_SECRET_KEY" ]; then
+    echo "Error: Please configure Server URL and Secret Key in PopClip extension settings" >&2
     exit 1
 fi
 
-curl -s -X POST "$LINKSTASH_SERVER/api/urls" \
-    -H "Authorization: Bearer $LINKSTASH_TOKEN" \
+# Step 1: Exchange secret_key for JWT token
+AUTH_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$LINKSTASH_SERVER/api/auth/token" \
     -H "Content-Type: application/json" \
-    -d "{\"link\":\"$POPCLIP_TEXT\"}"
+    -d "{\"secret_key\":\"$LINKSTASH_SECRET_KEY\"}")
 
-exit 0
+AUTH_CODE=$(echo "$AUTH_RESPONSE" | tail -1)
+AUTH_BODY=$(echo "$AUTH_RESPONSE" | sed '$d')
+
+if [ "$AUTH_CODE" -ne 200 ]; then
+    echo "Auth failed ($AUTH_CODE): $AUTH_BODY" >&2
+    exit 1
+fi
+
+JWT_TOKEN=$(echo "$AUTH_BODY" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+if [ -z "$JWT_TOKEN" ]; then
+    echo "Error: Failed to parse JWT token from auth response" >&2
+    exit 1
+fi
+
+# Step 2: Save URL with JWT token
+RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$LINKSTASH_SERVER/api/urls" \
+    -H "Authorization: Bearer $JWT_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"link\":\"$POPCLIP_TEXT\"}")
+
+HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+BODY=$(echo "$RESPONSE" | sed '$d')
+
+if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+    exit 0
+else
+    echo "Error ($HTTP_CODE): $BODY" >&2
+    exit 1
+fi

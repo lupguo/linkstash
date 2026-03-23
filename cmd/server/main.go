@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"flag"
-	"log"
+	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/lupguo/linkstash/app/di"
+	"github.com/lupguo/linkstash/app/infra/logger"
 	"github.com/lupguo/linkstash/app/middleware"
 )
 
@@ -18,8 +21,17 @@ func main() {
 
 	app, err := di.InitializeApp(*confPath)
 	if err != nil {
-		log.Fatalf("Failed to initialize app: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to initialize app: %v\n", err)
+		os.Exit(1)
 	}
+
+	// Initialize structured logger
+	cleanup, err := logger.Setup(app.Config.Log)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to setup logger: %v\n", err)
+		os.Exit(1)
+	}
+	defer cleanup()
 
 	// Start async worker
 	ctx := context.Background()
@@ -72,8 +84,9 @@ func main() {
 	})
 
 	addr := app.Config.Server.Addr()
-	log.Printf("[Server] LinkStash starting on %s", addr)
+	slog.Info("LinkStash starting", "addr", addr)
 	if err := http.ListenAndServe(addr, r); err != nil {
-		log.Fatalf("Server failed: %v", err)
+		slog.Error("server failed", "error", err)
+		os.Exit(1)
 	}
 }

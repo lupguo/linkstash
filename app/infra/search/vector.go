@@ -1,7 +1,7 @@
 package search
 
 import (
-	"log"
+	"log/slog"
 	"sort"
 	"sync"
 
@@ -42,7 +42,7 @@ func (vs *VectorSearch) LoadAll() error {
 	for _, e := range embeddings {
 		vs.cache[e.URLID] = llm.BytesToFloat32s(e.Vector)
 	}
-	log.Printf("[VectorSearch] loaded %d embeddings into memory cache", len(vs.cache))
+	slog.Info("loaded embeddings into memory cache", "component", "vector_search", "count", len(vs.cache))
 	return nil
 }
 

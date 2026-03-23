@@ -10,13 +10,21 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig   `yaml:"server"`
-	Auth     AuthConfig     `yaml:"auth"`
-	Database DatabaseConfig `yaml:"database"`
-	LLM      LLMConfig      `yaml:"llm"`
+	Server     ServerConfig   `yaml:"server"`
+	Auth       AuthConfig     `yaml:"auth"`
+	Database   DatabaseConfig `yaml:"database"`
+	Log        LogConfig      `yaml:"log"`
+	LLM        LLMConfig      `yaml:"llm"`
 	Short      ShortConfig    `yaml:"short"`
 	Categories []string       `yaml:"categories"`
 	Proxy      ProxyConfig    `yaml:"proxy"`
+}
+
+// LogConfig holds logging configuration.
+type LogConfig struct {
+	Level  string `yaml:"level"`  // debug, info, warn, error (default: info)
+	File   string `yaml:"file"`   // log file path (default: "" = stdout only)
+	Format string `yaml:"format"` // text, json (default: text)
 }
 
 // ProxyConfig holds optional HTTP/SOCKS proxy settings.
@@ -101,6 +109,12 @@ func Load(path string) (*Config, error) {
 	}
 	if cfg.Database.Path == "" {
 		cfg.Database.Path = "./data/linkstash.db"
+	}
+	if cfg.Log.Level == "" {
+		cfg.Log.Level = "info"
+	}
+	if cfg.Log.Format == "" {
+		cfg.Log.Format = "text"
 	}
 
 	// Default TTL options if not configured

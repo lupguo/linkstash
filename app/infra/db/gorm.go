@@ -2,7 +2,7 @@ package db
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -60,7 +60,7 @@ func InitDB(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 		return nil, fmt.Errorf("create FTS5: %w", err)
 	}
 
-	log.Println("[DB] Database initialized successfully")
+	slog.Info("database initialized successfully", "component", "db")
 	return db, nil
 }
 
@@ -77,7 +77,7 @@ func migrateShortLinks(db *gorm.DB) error {
 		return nil // Old table doesn't exist; nothing to migrate
 	}
 
-	log.Println("[DB] Migrating data from t_short_links to t_urls...")
+	slog.Info("migrating data from t_short_links to t_urls", "component", "db")
 
 	// Read all rows from the old table
 	type oldShortLink struct {
@@ -105,7 +105,7 @@ func migrateShortLinks(db *gorm.DB) error {
 				updates["short_expires_at"] = *ol.ExpiresAt
 			}
 			if err := db.Model(&entity.URL{}).Where("id = ?", existing.ID).Updates(updates).Error; err != nil {
-				log.Printf("[DB] Warning: failed to update URL id=%d with short code %s: %v", existing.ID, ol.Code, err)
+				slog.Warn("failed to update URL with short code", "component", "db", "url_id", existing.ID, "short_code", ol.Code, "error", err)
 			}
 		} else {
 			// Not found — create a new URL record
@@ -116,7 +116,7 @@ func migrateShortLinks(db *gorm.DB) error {
 				Status:     "pending",
 			}
 			if err := db.Create(&newURL).Error; err != nil {
-				log.Printf("[DB] Warning: failed to create URL for short code %s: %v", ol.Code, err)
+				slog.Warn("failed to create URL for short code", "component", "db", "short_code", ol.Code, "error", err)
 			}
 		}
 	}
@@ -126,7 +126,7 @@ func migrateShortLinks(db *gorm.DB) error {
 		return fmt.Errorf("drop t_short_links: %w", err)
 	}
 
-	log.Printf("[DB] Migrated %d short links into t_urls", len(oldLinks))
+	slog.Info("migrated short links into t_urls", "component", "db", "count", len(oldLinks))
 	return nil
 }
 
@@ -219,12 +219,12 @@ func migrateColorThemes(db *gorm.DB) {
 		return
 	}
 
-	log.Printf("[DB] Migrating %d color values to theme keys...", count)
+	slog.Info("migrating color values to theme keys", "component", "db", "count", count)
 	db.Exec("UPDATE t_urls SET color = 'green' WHERE color = '#47ff5d'")
 	db.Exec("UPDATE t_urls SET color = 'red' WHERE color = '#ca4949'")
 	// Clear any remaining non-theme color values
 	db.Exec("UPDATE t_urls SET color = '' WHERE color NOT IN " + notIn)
-	log.Println("[DB] Color theme migration complete")
+	slog.Info("color theme migration complete", "component", "db")
 }
 
 // joinStrings joins string slice with commas.
