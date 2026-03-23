@@ -228,6 +228,10 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	if searchType == "" {
 		searchType = "keyword"
 	}
+	minScore, _ := strconv.ParseFloat(r.URL.Query().Get("min_score"), 64)
+	if minScore <= 0 {
+		minScore = 0.6
+	}
 
 	type indexURL struct {
 		*entity.URL
@@ -252,11 +256,15 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-		total = int64(searchTotal)
+		// Filter by min_score
 		for _, item := range results {
-			tw := item.URL.AutoWeight + item.URL.ManualWeight
-			displayURLs = append(displayURLs, indexURL{URL: item.URL, Score: item.Score, HasScore: true, TotalWeight: tw})
+			if item.Score >= minScore {
+				tw := item.URL.AutoWeight + item.URL.ManualWeight
+				displayURLs = append(displayURLs, indexURL{URL: item.URL, Score: item.Score, HasScore: true, TotalWeight: tw})
+			}
 		}
+		total = int64(len(displayURLs))
+		_ = searchTotal // total is now count after filtering
 	} else {
 		// Normal list mode
 		urls, listTotal, err := h.urlUsecase.ListURLs(page, size, sort, category, tags, isShortURL)
@@ -281,6 +289,7 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		SearchType string
 		IsSearch   bool
 		IsShortURL bool
+		MinScore   float64
 	}{
 		pageData:   pd,
 		URLs:       displayURLs,
@@ -288,6 +297,7 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		SearchType: searchType,
 		IsSearch:   isSearch,
 		IsShortURL: isShortURL,
+		MinScore:   minScore,
 	}
 
 	h.renderTemplate(w, "index", data)
@@ -323,6 +333,10 @@ func (h *WebHandler) HandleIndexCards(w http.ResponseWriter, r *http.Request) {
 	if searchType == "" {
 		searchType = "keyword"
 	}
+	minScore, _ := strconv.ParseFloat(r.URL.Query().Get("min_score"), 64)
+	if minScore <= 0 {
+		minScore = 0.6
+	}
 
 	type indexURL struct {
 		*entity.URL
@@ -342,8 +356,10 @@ func (h *WebHandler) HandleIndexCards(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for _, item := range results {
-			tw := item.URL.AutoWeight + item.URL.ManualWeight
-			displayURLs = append(displayURLs, indexURL{URL: item.URL, Score: item.Score, HasScore: true, TotalWeight: tw})
+			if item.Score >= minScore {
+				tw := item.URL.AutoWeight + item.URL.ManualWeight
+				displayURLs = append(displayURLs, indexURL{URL: item.URL, Score: item.Score, HasScore: true, TotalWeight: tw})
+			}
 		}
 	} else {
 		urls, _, err := h.urlUsecase.ListURLs(page, size, sort, category, tags, isShortURL)

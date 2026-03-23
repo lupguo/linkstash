@@ -46,6 +46,19 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Filter by min_score
+	minScore, _ := strconv.ParseFloat(q.Get("min_score"), 64)
+	if minScore > 0 {
+		filtered := items[:0]
+		for _, item := range items {
+			if item.Score >= minScore {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+		total = len(items)
+	}
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"data":  items,
 		"total": total,

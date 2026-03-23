@@ -1,5 +1,5 @@
 {{define "content"}}
-<div x-data="urlListPage()" x-init="initScroll()">
+<div x-data="urlListPage()" x-init="initScroll()" @keyup.escape.window="if (isSearch || searchQuery) clearSearch()">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
         <div>
@@ -87,6 +87,18 @@
                        class="accent-green-500">
                 <span class="text-terminal-gray text-xs">short only</span>
             </label>
+            <div class="flex items-center gap-2" x-show="isSearch" x-cloak>
+                <span class="text-terminal-gray text-xs">score:</span>
+                <select x-model="filters.minScore" @change="applyFilters()"
+                        class="terminal-input px-2 py-1 rounded text-xs">
+                    <option value="0">all</option>
+                    <option value="0.2">≥ 0.2</option>
+                    <option value="0.4">≥ 0.4</option>
+                    <option value="0.6">≥ 0.6</option>
+                    <option value="0.8">≥ 0.8</option>
+                    <option value="1.0">= 1.0</option>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -129,6 +141,7 @@ function urlListPage() {
             sort: '{{.FilterSort}}',
             size: '{{.Size}}',
             isShortURL: {{.IsShortURL}},
+            minScore: '{{.MinScore}}' || '0.6',
         },
         nextPage: {{.Page}} + 1,
         totalPages: {{.TotalPages}},
@@ -160,6 +173,9 @@ function urlListPage() {
             if (this.searchQuery) {
                 params.set('q', this.searchQuery);
                 params.set('search_type', this.searchType);
+                if (this.filters.minScore && this.filters.minScore !== '0') {
+                    params.set('min_score', this.filters.minScore);
+                }
             }
 
             try {
@@ -183,6 +199,9 @@ function urlListPage() {
             const params = new URLSearchParams();
             params.set('q', this.searchQuery);
             params.set('search_type', this.searchType);
+            if (this.filters.minScore && this.filters.minScore !== '0') {
+                params.set('min_score', this.filters.minScore);
+            }
             if (this.filters.category) params.set('category', this.filters.category);
             params.set('sort', this.filters.sort);
             params.set('size', this.filters.size);
@@ -199,6 +218,9 @@ function urlListPage() {
             if (this.searchQuery) {
                 params.set('q', this.searchQuery);
                 params.set('search_type', this.searchType);
+                if (this.filters.minScore && this.filters.minScore !== '0') {
+                    params.set('min_score', this.filters.minScore);
+                }
             }
             if (this.filters.category) params.set('category', this.filters.category);
             if (this.filters.sort) params.set('sort', this.filters.sort);

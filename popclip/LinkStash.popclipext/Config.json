@@ -23,6 +23,7 @@
     "icon": "iconify:mdi:link-plus",
     "type": "shell-script",
     "shell-script-file": "action.sh",
+    "after": "show-result",
     "requirements": ["url"]
   }]
 }

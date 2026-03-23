@@ -146,12 +146,14 @@ func createFTS5(db *gorm.DB) error {
 
 	// Create FTS5 virtual table for full-text search on URLs
 	// Includes link, title, keywords, description, category, tags, short_code
-	// Uses tokenize="unicode61 tokenchars './:@-_'" to keep URL parts as searchable tokens
+	// Uses default unicode61 tokenizer so URL special chars (. / : @ - _) act as
+	// separators, making domain/path segments individually searchable.
+	// e.g. "https://claude.ai/chat" → tokens: "https", "claude", "ai", "chat"
 	fts5DDL := `
 		CREATE VIRTUAL TABLE IF NOT EXISTS t_urls_fts USING fts5(
 			link, title, keywords, description, category, tags, short_code,
 			content=t_urls, content_rowid=id,
-			tokenize="unicode61 tokenchars './:@-_'"
+			tokenize="unicode61"
 		);
 	`
 	if err := db.Exec(fts5DDL).Error; err != nil {
