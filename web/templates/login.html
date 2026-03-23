@@ -10,7 +10,7 @@
         </div>
 
         <!-- Login Form -->
-        <div class="terminal-card p-6 rounded">
+        <div class="terminal-card p-6 rounded-lg">
             <!-- Error Message -->
             <div x-show="error" x-cloak
                  class="mb-4 p-3 border border-terminal-red bg-terminal-red/10 rounded text-terminal-red text-sm">
@@ -27,7 +27,7 @@
                 <!-- Secret Key Input -->
                 <div class="mb-6">
                     <label class="block text-sm mb-2 text-terminal-gray">
-                        <span class="text-terminal-green">></span> secret_key:
+                        <span class="text-terminal-green">&gt;</span> secret_key:
                     </label>
                     <input type="password"
                            x-model="secretKey"
@@ -42,7 +42,7 @@
                         class="terminal-btn w-full py-3 rounded font-mono text-sm font-bold tracking-wider"
                         :disabled="loading"
                         :class="{ 'opacity-50 cursor-not-allowed': loading }">
-                    <span x-show="!loading">> AUTHENTICATE</span>
+                    <span x-show="!loading">&gt; AUTHENTICATE</span>
                     <span x-show="loading">processing...</span>
                 </button>
             </form>
@@ -55,46 +55,4 @@
         </div>
     </div>
 </div>
-
-<script>
-function loginForm() {
-    return {
-        secretKey: '',
-        error: '',
-        success: false,
-        loading: false,
-        async submit() {
-            this.error = '';
-            this.success = false;
-            this.loading = true;
-
-            try {
-                const resp = await fetch('/api/auth/token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ secret_key: this.secretKey }),
-                });
-
-                const data = await resp.json();
-
-                if (!resp.ok) {
-                    this.error = (data.error && data.error.message) || 'authentication failed';
-                    this.loading = false;
-                    return;
-                }
-
-                // Set cookie with token
-                const maxAge = data.expires_in || 259200; // default 72h
-                document.cookie = `linkstash_token=${data.token}; path=/; max-age=${maxAge}; SameSite=Strict`;
-
-                this.success = true;
-                setTimeout(() => { window.location.href = '/'; }, 800);
-            } catch (e) {
-                this.error = 'network error: unable to reach server';
-                this.loading = false;
-            }
-        }
-    };
-}
-</script>
 {{end}}

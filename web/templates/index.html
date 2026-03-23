@@ -11,19 +11,19 @@
             </p>
         </div>
         <a href="/urls/new" class="terminal-btn px-4 py-2 rounded text-sm text-center">
-            > touch
+            &gt; touch
         </a>
     </div>
 
-    <!-- Search Bar -->
-    <div class="terminal-card p-3 rounded mb-3">
+    <!-- Search & Filters — merged glass panel -->
+    <div class="glass-panel p-3 rounded-lg mb-4 space-y-2">
         <form @submit.prevent="doSearch()" class="flex flex-col gap-2">
             <div class="flex gap-2">
                 <input type="text" x-model="searchQuery"
                        placeholder="search bookmarks..."
                        class="terminal-input flex-1 px-3 py-2 rounded text-sm">
                 <button type="submit" class="terminal-btn px-4 py-2 rounded text-sm whitespace-nowrap">
-                    > grep
+                    &gt; grep
                 </button>
                 <button type="button" @click="clearSearch()" x-show="searchQuery || isSearch"
                         class="terminal-btn terminal-btn-danger px-3 py-2 rounded text-sm whitespace-nowrap">
@@ -50,11 +50,9 @@
                 </button>
             </div>
         </form>
-    </div>
 
-    <!-- Filters -->
-    <div class="terminal-card p-3 rounded mb-4">
-        <div class="flex flex-wrap gap-3 items-center text-sm">
+        <!-- Filters -->
+        <div class="flex flex-wrap gap-3 items-center text-sm pt-2 border-t border-terminal-border/50">
             <div class="flex items-center gap-2">
                 <span class="text-terminal-gray text-xs">category:</span>
                 <select x-model="filters.category" @change="applyFilters()"
@@ -110,7 +108,7 @@
     </div>
 
     {{if not .URLs}}
-    <div class="terminal-card p-8 rounded text-center">
+    <div class="terminal-card p-8 rounded-lg text-center">
         <p class="text-terminal-gray">// no urls found</p>
         <p class="text-terminal-gray text-xs mt-2">try adding a url or adjusting filters</p>
     </div>
@@ -130,167 +128,6 @@
     </div>
 </div>
 
-<script>
-function urlListPage() {
-    return {
-        searchQuery: '{{.Query}}',
-        searchType: '{{.SearchType}}' || 'keyword',
-        isSearch: {{.IsSearch}},
-        filters: {
-            category: '{{.FilterCategory}}',
-            sort: '{{.FilterSort}}',
-            size: '{{.Size}}',
-            isShortURL: {{.IsShortURL}},
-            minScore: '{{.MinScore}}' || '0.6',
-        },
-        nextPage: {{.Page}} + 1,
-        totalPages: {{.TotalPages}},
-        isLoading: false,
-        hasMore: {{.Page}} < {{.TotalPages}},
-
-        initScroll() {
-            if (!this.hasMore) return;
-            const observer = new IntersectionObserver((entries) => {
-                if (entries[0].isIntersecting && this.hasMore && !this.isLoading) {
-                    this.loadMore();
-                }
-            }, { rootMargin: '200px' });
-            this.$nextTick(() => {
-                if (this.$refs.sentinel) {
-                    observer.observe(this.$refs.sentinel);
-                }
-            });
-        },
-
-        async loadMore() {
-            this.isLoading = true;
-            const params = new URLSearchParams();
-            params.set('page', this.nextPage);
-            params.set('size', this.filters.size);
-            if (this.filters.sort) params.set('sort', this.filters.sort);
-            if (this.filters.category) params.set('category', this.filters.category);
-            if (this.filters.isShortURL) params.set('is_shorturl', '1');
-            if (this.searchQuery) {
-                params.set('q', this.searchQuery);
-                params.set('search_type', this.searchType);
-                if (this.filters.minScore && this.filters.minScore !== '0') {
-                    params.set('min_score', this.filters.minScore);
-                }
-            }
-
-            try {
-                const resp = await fetch('/cards?' + params.toString());
-                const html = await resp.text();
-                if (html.trim()) {
-                    document.getElementById('url-list').insertAdjacentHTML('beforeend', html);
-                    this.nextPage++;
-                    this.hasMore = this.nextPage <= this.totalPages;
-                } else {
-                    this.hasMore = false;
-                }
-            } catch (e) {
-                console.error('loadMore error:', e);
-            }
-            this.isLoading = false;
-        },
-
-        doSearch() {
-            if (!this.searchQuery.trim()) return;
-            const params = new URLSearchParams();
-            params.set('q', this.searchQuery);
-            params.set('search_type', this.searchType);
-            if (this.filters.minScore && this.filters.minScore !== '0') {
-                params.set('min_score', this.filters.minScore);
-            }
-            if (this.filters.category) params.set('category', this.filters.category);
-            params.set('sort', this.filters.sort);
-            params.set('size', this.filters.size);
-            if (this.filters.isShortURL) params.set('is_shorturl', '1');
-            params.set('page', '1');
-            window.location.href = '/?' + params.toString();
-        },
-        clearSearch() {
-            this.searchQuery = '';
-            this.applyFilters();
-        },
-        applyFilters() {
-            const params = new URLSearchParams();
-            if (this.searchQuery) {
-                params.set('q', this.searchQuery);
-                params.set('search_type', this.searchType);
-                if (this.filters.minScore && this.filters.minScore !== '0') {
-                    params.set('min_score', this.filters.minScore);
-                }
-            }
-            if (this.filters.category) params.set('category', this.filters.category);
-            if (this.filters.sort) params.set('sort', this.filters.sort);
-            if (this.filters.size) params.set('size', this.filters.size);
-            if (this.filters.isShortURL) params.set('is_shorturl', '1');
-            params.set('page', '1');
-            window.location.href = '/?' + params.toString();
-        },
-    };
-}
-
-function getCookie(name) {
-    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-    return v ? v.pop() : '';
-}
-
-function urlCard(data) {
-    return {
-        id: data.id,
-        link: data.link,
-        shortCode: data.shortCode,
-        linkCopied: false,
-        shortCopied: false,
-        trackVisit() {
-            // Async visit tracking via sendBeacon — doesn't block navigation
-            const token = getCookie('linkstash_token');
-            const url = '/api/urls/' + this.id + '/visit';
-            if (navigator.sendBeacon) {
-                const blob = new Blob(['{}'], { type: 'application/json' });
-                // sendBeacon doesn't support custom headers, use fetch with keepalive
-                fetch(url, {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + token },
-                    keepalive: true,
-                }).catch(() => {});
-            }
-        },
-        copyLink() {
-            copyToClipboard(this.link);
-            this.linkCopied = true;
-            setTimeout(() => this.linkCopied = false, 2000);
-        },
-        copyShortLink() {
-            copyToClipboard(window.location.origin + '/s/' + this.shortCode);
-            this.shortCopied = true;
-            setTimeout(() => this.shortCopied = false, 2000);
-        },
-        async deleteURL() {
-            if (!confirm('$ rm url/' + this.id + ' -- are you sure?')) return;
-            try {
-                const token = getCookie('linkstash_token');
-                const resp = await fetch('/api/urls/' + this.id, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token },
-                });
-                if (resp.ok) window.location.reload();
-            } catch (e) {}
-        },
-    };
-}
-
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).catch(() => {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-    });
-}
-</script>
+<!-- Page Data (JSON) — consumed by urlListPage() -->
+<script id="page-data" type="application/json">{{json .PageData}}</script>
 {{end}}

@@ -6,162 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LinkStash // Terminal Mode</title>
 
-    <!-- Google Fonts: JetBrains Mono -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'terminal-bg': '#0a0e17',
-                        'terminal-green': '#00ff41',
-                        'terminal-red': '#ff6b6b',
-                        'terminal-cyan': '#4ecdc4',
-                        'terminal-gray': '#888888',
-                        'terminal-dark': '#0d1117',
-                        'terminal-border': '#1a2332',
-                    },
-                    fontFamily: {
-                        mono: ['"JetBrains Mono"', '"Fira Code"', 'monospace'],
-                    },
-                },
-            },
-        }
-    </script>
+    <!-- Local CSS (tree-shaken Tailwind + custom) -->
+    <link rel="stylesheet" href="/static/css/app.css?v={{.Version}}">
 
-    <!-- htmx -->
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-
-    <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-    <style>
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
-        .cursor-blink {
-            animation: blink 1s step-end infinite;
-        }
-        .terminal-input {
-            background: #0d1117;
-            border: 1px solid #1a2332;
-            color: #00ff41;
-            caret-color: #00ff41;
-        }
-        .terminal-input:focus {
-            border-color: #00ff41;
-            outline: none;
-            box-shadow: 0 0 0 1px #00ff41;
-        }
-        .terminal-input::placeholder {
-            color: #555;
-        }
-        .terminal-card {
-            background: #0d1117;
-            border: 1px solid #1a2332;
-            transition: border-color 0.2s;
-        }
-        .terminal-card:hover {
-            border-color: #00ff41;
-        }
-
-        /* Card fixed-height default + hover expand */
-        .card-wrapper {
-            height: 165px;
-        }
-        .card-default {
-            height: 100%;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        /* Description: single line by default */
-        .card-desc {
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-        }
-        /* Hidden by default */
-        .card-hover-extra,
-        .card-hover-actions {
-            display: none;
-        }
-        /* Hover expand: absolute overlay */
-        .card-wrapper:hover .card-default {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: auto;
-            overflow: visible;
-            z-index: 20;
-            background: #0d1117;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        }
-        .card-wrapper:hover .card-desc {
-            -webkit-line-clamp: unset;
-            overflow: visible;
-        }
-        .card-wrapper:hover .card-hover-extra {
-            display: block;
-        }
-        .card-wrapper:hover .card-hover-actions {
-            display: flex;
-        }
-        /* Expand tags row on hover */
-        .card-wrapper:hover .overflow-hidden[style*="max-height"] {
-            max-height: none !important;
-            flex-wrap: wrap;
-        }
-        .terminal-btn {
-            border: 1px solid #00ff41;
-            color: #00ff41;
-            background: transparent;
-            transition: all 0.2s;
-        }
-        .terminal-btn:hover {
-            background: #00ff41;
-            color: #0a0e17;
-        }
-        .terminal-btn-danger {
-            border-color: #ff6b6b;
-            color: #ff6b6b;
-        }
-        .terminal-btn-danger:hover {
-            background: #ff6b6b;
-            color: #0a0e17;
-        }
-        /* Theme color presets — background only, no border color change */
-        .card-theme-green  { background: rgba(0,255,65,0.06); }
-        .card-theme-red    { background: rgba(255,107,107,0.06); }
-        .card-theme-cyan   { background: rgba(78,205,196,0.06); }
-        .card-theme-yellow { background: rgba(255,217,61,0.06); }
-        .card-theme-purple { background: rgba(192,132,252,0.06); }
-        .card-theme-orange { background: rgba(251,146,60,0.06); }
-        .card-theme-blue   { background: rgba(96,165,250,0.06); }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0a0e17; }
-        ::-webkit-scrollbar-thumb { background: #1a2332; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #00ff41; }
-    </style>
+    <!-- Bundled JS (htmx + Alpine + app components) -->
+    <script src="/static/js/app.js?v={{.Version}}" defer></script>
 </head>
 <body class="bg-terminal-bg text-terminal-green font-mono min-h-screen flex flex-col" x-data="{ authenticated: document.cookie.includes('linkstash_token') }">
 
-    <!-- Navigation -->
-    <nav class="border-b border-terminal-border px-4 py-3">
+    <!-- Navigation — sticky + glass effect -->
+    <nav class="nav-glass sticky top-0 z-40 border-b border-terminal-border px-4 py-3">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
             <!-- Logo -->
             <a href="/" class="flex items-center space-x-2 text-lg font-bold hover:text-white transition-colors">
-                <span class="text-terminal-gray">>&nbsp;_</span>
+                <span class="text-terminal-gray">&gt;&nbsp;_</span>
                 <span class="cursor-blink">|</span>
                 <span>LinkStash</span>
             </a>
@@ -192,7 +55,7 @@
                     <span x-show="open">[close]</span>
                 </button>
                 <div x-show="open" @click.away="open = false"
-                     class="absolute right-4 top-14 bg-terminal-dark border border-terminal-border p-4 space-y-3 z-50">
+                     class="absolute right-4 top-14 bg-terminal-dark border border-terminal-border p-4 space-y-3 z-50 rounded-lg">
                 </div>
             </div>
         </div>
@@ -206,7 +69,7 @@
     <!-- Footer -->
     <footer class="border-t border-terminal-border px-4 py-3 text-center text-xs text-terminal-gray">
         <div>
-            <span>LinkStash v1.0 // Terminal Mode</span>
+            <span>LinkStash {{.Version}} // Terminal Mode</span>
             <span class="mx-2">|</span>
             <span class="cursor-blink">_</span>
         </div>

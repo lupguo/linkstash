@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
@@ -15,9 +16,15 @@ import (
 	"github.com/lupguo/linkstash/app/middleware"
 )
 
+// Version is set by ldflags at build time.
+var Version = "dev"
+
 func main() {
 	confPath := flag.String("conf", "conf/app_dev.yaml", "config file path")
 	flag.Parse()
+
+	// Set version for DI layer
+	di.AppVersion = Version
 
 	app, err := di.InitializeApp(*confPath)
 	if err != nil {
@@ -46,6 +53,7 @@ func main() {
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.RequestID)
+	r.Use(chimw.Compress(5))
 
 	// Public routes
 	r.Post("/api/auth/token", app.AuthHandler.HandleToken)
@@ -61,8 +69,9 @@ func main() {
 	r.Get("/urls/new", app.WebHandler.HandleNew)
 	r.Get("/urls/{id}", app.WebHandler.HandleDetail)
 
+	// Static files with cache headers
 	fileServer := http.FileServer(http.Dir("web/static"))
-	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
+	r.Handle("/static/*", staticCacheMiddleware(http.StripPrefix("/static/", fileServer)))
 
 	// Protected API routes
 	r.Route("/api", func(r chi.Router) {
@@ -84,9 +93,26 @@ func main() {
 	})
 
 	addr := app.Config.Server.Addr()
-	slog.Info("LinkStash starting", "addr", addr)
+	slog.Info("LinkStash starting", "addr", addr, "version", Version)
 	if err := http.ListenAndServe(addr, r); err != nil {
 		slog.Error("server failed", "error", err)
 		os.Exit(1)
 	}
+}
+
+// staticCacheMiddleware adds Cache-Control headers for static assets.
+func staticCacheMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		switch {
+		case strings.HasSuffix(path, ".css"),
+			strings.HasSuffix(path, ".js"),
+			strings.HasSuffix(path, ".woff2"):
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		case strings.HasSuffix(path, ".svg"),
+			strings.HasSuffix(path, ".png"):
+			w.Header().Set("Cache-Control", "public, max-age=86400")
+		}
+		next.ServeHTTP(w, r)
+	})
 }

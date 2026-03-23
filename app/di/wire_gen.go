@@ -66,7 +66,7 @@ func InitializeApp(confPath string) (*App, error) {
 	urlHandler := handler.NewURLHandler(urlUsecase)
 	searchHandler := handler.NewSearchHandler(searchUsecase)
 	shortURLHandler := handler.NewShortURLHandler(urlUsecase)
-	webHandler := handler.NewWebHandler(urlUsecase, searchUsecase, authCfg, shortCfg, cfg.Categories, "web")
+	webHandler := handler.NewWebHandler(urlUsecase, searchUsecase, authCfg, shortCfg, cfg.Categories, "web", AppVersion)
 
 	app := &App{
 		Config:          cfg,

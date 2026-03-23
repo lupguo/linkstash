@@ -9,6 +9,13 @@ dist/
 data/
 *.db
 
+# Frontend build output (generated)
+web/static/css/
+web/static/js/
+
+# Frontend tools (downloaded binaries)
+tools/
+
 # IDE
 .idea/
 .vscode/
@@ -27,10 +34,14 @@ Thumbs.db
 .superpowers/
 docs/superpowers/
 
-# Screenshots
+# Screenshots (but not static assets)
 *.png
 *.jpg
 *.jpeg
+!web/static/fonts/**
+!web/static/favicon*.png
+!web/static/apple-touch-icon.png
+!web/static/favicon.svg
 
 # Temp
 /tmp/

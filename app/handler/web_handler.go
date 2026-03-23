@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log/slog"
@@ -28,12 +29,10 @@ type WebHandler struct {
 	authCfg       *config.AuthConfig
 	shortCfg      *config.ShortConfig
 	categories    []string
+	version       string
 }
 
 // NewWebHandler creates a new WebHandler, parsing per-page template sets.
-// Each page template is paired with layout.html and component files so that
-// the "content" block is unique per page (Go's html/template keeps only the
-// last definition when all files are parsed together).
 func NewWebHandler(
 	urlUsecase *application.URLUsecase,
 	searchUsecase *application.SearchUsecase,
@@ -41,6 +40,7 @@ func NewWebHandler(
 	shortCfg *config.ShortConfig,
 	categories []string,
 	templateDir string,
+	version string,
 ) *WebHandler {
 	layoutFile := filepath.Join(templateDir, "templates", "layout.html")
 
@@ -78,6 +78,13 @@ func NewWebHandler(
 			}
 			return result
 		},
+		"json": func(v interface{}) template.JS {
+			b, err := json.Marshal(v)
+			if err != nil {
+				return template.JS("{}")
+			}
+			return template.JS(b)
+		},
 	}
 
 	// Page templates to parse individually with the layout
@@ -103,6 +110,7 @@ func NewWebHandler(
 		authCfg:       authCfg,
 		shortCfg:      shortCfg,
 		categories:    categories,
+		version:       version,
 	}
 }
 
@@ -112,45 +120,16 @@ type pageData struct {
 	Size           int
 	Total          int64
 	TotalPages     int
-	PrevPage       int
-	NextPage       int
-	PageNumbers    []int
 	FilterCategory string
 	FilterSort     string
 	Categories     []string
+	Version        string
 }
 
-func newPageData(page, size int, total int64, category, sort string) pageData {
+func (h *WebHandler) newPageData(page, size int, total int64, category, sort string) pageData {
 	totalPages := int(math.Ceil(float64(total) / float64(size)))
 	if totalPages < 1 {
 		totalPages = 1
-	}
-
-	prevPage := page - 1
-	if prevPage < 1 {
-		prevPage = 1
-	}
-	nextPage := page + 1
-	if nextPage > totalPages {
-		nextPage = totalPages
-	}
-
-	// Generate page numbers (up to 5 around current page)
-	start := page - 2
-	if start < 1 {
-		start = 1
-	}
-	end := start + 4
-	if end > totalPages {
-		end = totalPages
-		start = end - 4
-		if start < 1 {
-			start = 1
-		}
-	}
-	pageNumbers := make([]int, 0, end-start+1)
-	for i := start; i <= end; i++ {
-		pageNumbers = append(pageNumbers, i)
 	}
 
 	return pageData{
@@ -158,12 +137,102 @@ func newPageData(page, size int, total int64, category, sort string) pageData {
 		Size:           size,
 		Total:          total,
 		TotalPages:     totalPages,
-		PrevPage:       prevPage,
-		NextPage:       nextPage,
-		PageNumbers:    pageNumbers,
 		FilterCategory: category,
 		FilterSort:     sort,
+		Version:        h.version,
 	}
+}
+
+// listParams holds parsed request parameters for list/search endpoints.
+type listParams struct {
+	Page       int
+	Size       int
+	Sort       string
+	Category   string
+	Tags       string
+	IsShortURL bool
+	Query      string
+	SearchType string
+	MinScore   float64
+}
+
+// parseListParams extracts common list/search query parameters from the request.
+func parseListParams(r *http.Request) listParams {
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	size, _ := strconv.Atoi(r.URL.Query().Get("size"))
+	if size <= 0 {
+		size = 20
+	}
+	sort := r.URL.Query().Get("sort")
+	if sort == "" {
+		sort = "weight"
+	}
+	searchType := r.URL.Query().Get("search_type")
+	if searchType == "" {
+		searchType = "keyword"
+	}
+	minScore, _ := strconv.ParseFloat(r.URL.Query().Get("min_score"), 64)
+	if minScore <= 0 {
+		minScore = 0.6
+	}
+
+	return listParams{
+		Page:       page,
+		Size:       size,
+		Sort:       sort,
+		Category:   r.URL.Query().Get("category"),
+		Tags:       r.URL.Query().Get("tags"),
+		IsShortURL: r.URL.Query().Get("is_shorturl") == "1",
+		Query:      r.URL.Query().Get("q"),
+		SearchType: searchType,
+		MinScore:   minScore,
+	}
+}
+
+type indexURL struct {
+	*entity.URL
+	Score       float64
+	HasScore    bool
+	TotalWeight float64
+}
+
+// fetchURLs retrieves URLs based on list parameters (search or list mode).
+func (h *WebHandler) fetchURLs(params listParams) ([]indexURL, int64, bool, error) {
+	var (
+		displayURLs []indexURL
+		total       int64
+		isSearch    bool
+	)
+
+	if params.Query != "" {
+		isSearch = true
+		ctx := context.Background()
+		results, _, err := h.searchUsecase.Search(ctx, params.Query, params.SearchType, params.Page, params.Size)
+		if err != nil {
+			return nil, 0, false, err
+		}
+		for _, item := range results {
+			if item.Score >= params.MinScore {
+				tw := item.URL.AutoWeight + item.URL.ManualWeight
+				displayURLs = append(displayURLs, indexURL{URL: item.URL, Score: item.Score, HasScore: true, TotalWeight: tw})
+			}
+		}
+		total = int64(len(displayURLs))
+	} else {
+		urls, listTotal, err := h.urlUsecase.ListURLs(params.Page, params.Size, params.Sort, params.Category, params.Tags, params.IsShortURL)
+		if err != nil {
+			return nil, 0, false, err
+		}
+		total = listTotal
+		for _, u := range urls {
+			displayURLs = append(displayURLs, indexURL{URL: u, TotalWeight: u.AutoWeight + u.ManualWeight})
+		}
+	}
+
+	return displayURLs, total, isSearch, nil
 }
 
 // isAuthenticated checks if the request has a valid JWT token in the cookie.
@@ -205,82 +274,30 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse query parameters
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page < 1 {
-		page = 1
-	}
-	size, _ := strconv.Atoi(r.URL.Query().Get("size"))
-	if size <= 0 {
-		size = 20
-	}
-	sort := r.URL.Query().Get("sort")
-	if sort == "" {
-		sort = "weight"
-	}
-	category := r.URL.Query().Get("category")
-	tags := r.URL.Query().Get("tags")
-	isShortURL := r.URL.Query().Get("is_shorturl") == "1"
-
-	// Search parameters
-	query := r.URL.Query().Get("q")
-	searchType := r.URL.Query().Get("search_type")
-	if searchType == "" {
-		searchType = "keyword"
-	}
-	minScore, _ := strconv.ParseFloat(r.URL.Query().Get("min_score"), 64)
-	if minScore <= 0 {
-		minScore = 0.6
+	params := parseListParams(r)
+	displayURLs, total, isSearch, err := h.fetchURLs(params)
+	if err != nil {
+		slog.Error("fetch urls error", "component", "web_handler", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
-	type indexURL struct {
-		*entity.URL
-		Score       float64
-		HasScore    bool
-		TotalWeight float64
-	}
-
-	var (
-		displayURLs []indexURL
-		total       int64
-		isSearch    bool
-	)
-
-	if query != "" {
-		// Search mode
-		isSearch = true
-		ctx := context.Background()
-		results, searchTotal, err := h.searchUsecase.Search(ctx, query, searchType, page, size)
-		if err != nil {
-			slog.Error("search error", "component", "web_handler", "error", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		// Filter by min_score
-		for _, item := range results {
-			if item.Score >= minScore {
-				tw := item.URL.AutoWeight + item.URL.ManualWeight
-				displayURLs = append(displayURLs, indexURL{URL: item.URL, Score: item.Score, HasScore: true, TotalWeight: tw})
-			}
-		}
-		total = int64(len(displayURLs))
-		_ = searchTotal // total is now count after filtering
-	} else {
-		// Normal list mode
-		urls, listTotal, err := h.urlUsecase.ListURLs(page, size, sort, category, tags, isShortURL)
-		if err != nil {
-			slog.Error("list urls error", "component", "web_handler", "error", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		total = listTotal
-		for _, u := range urls {
-			displayURLs = append(displayURLs, indexURL{URL: u, TotalWeight: u.AutoWeight + u.ManualWeight})
-		}
-	}
-
-	pd := newPageData(page, size, total, category, sort)
+	pd := h.newPageData(params.Page, params.Size, total, params.Category, params.Sort)
 	pd.Categories = h.categories
+
+	// PageData for the JSON block consumed by Alpine.js
+	pageJSON := map[string]interface{}{
+		"Query":          params.Query,
+		"SearchType":     params.SearchType,
+		"IsSearch":       isSearch,
+		"FilterCategory": params.Category,
+		"FilterSort":     params.Sort,
+		"Size":           params.Size,
+		"IsShortURL":     params.IsShortURL,
+		"MinScore":       params.MinScore,
+		"Page":           params.Page,
+		"TotalPages":     pd.TotalPages,
+	}
 
 	data := struct {
 		pageData
@@ -290,14 +307,16 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		IsSearch   bool
 		IsShortURL bool
 		MinScore   float64
+		PageData   map[string]interface{}
 	}{
 		pageData:   pd,
 		URLs:       displayURLs,
-		Query:      query,
-		SearchType: searchType,
+		Query:      params.Query,
+		SearchType: params.SearchType,
 		IsSearch:   isSearch,
-		IsShortURL: isShortURL,
-		MinScore:   minScore,
+		IsShortURL: params.IsShortURL,
+		MinScore:   params.MinScore,
+		PageData:   pageJSON,
 	}
 
 	h.renderTemplate(w, "index", data)
@@ -310,67 +329,12 @@ func (h *WebHandler) HandleIndexCards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse query parameters (same as HandleIndex)
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page < 1 {
-		page = 1
-	}
-	size, _ := strconv.Atoi(r.URL.Query().Get("size"))
-	if size <= 0 {
-		size = 20
-	}
-	sort := r.URL.Query().Get("sort")
-	if sort == "" {
-		sort = "weight"
-	}
-	category := r.URL.Query().Get("category")
-	tags := r.URL.Query().Get("tags")
-	isShortURL := r.URL.Query().Get("is_shorturl") == "1"
-
-	// Search parameters
-	query := r.URL.Query().Get("q")
-	searchType := r.URL.Query().Get("search_type")
-	if searchType == "" {
-		searchType = "keyword"
-	}
-	minScore, _ := strconv.ParseFloat(r.URL.Query().Get("min_score"), 64)
-	if minScore <= 0 {
-		minScore = 0.6
-	}
-
-	type indexURL struct {
-		*entity.URL
-		Score       float64
-		HasScore    bool
-		TotalWeight float64
-	}
-
-	var displayURLs []indexURL
-
-	if query != "" {
-		ctx := context.Background()
-		results, _, err := h.searchUsecase.Search(ctx, query, searchType, page, size)
-		if err != nil {
-			slog.Error("search error", "component", "web_handler", "error", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		for _, item := range results {
-			if item.Score >= minScore {
-				tw := item.URL.AutoWeight + item.URL.ManualWeight
-				displayURLs = append(displayURLs, indexURL{URL: item.URL, Score: item.Score, HasScore: true, TotalWeight: tw})
-			}
-		}
-	} else {
-		urls, _, err := h.urlUsecase.ListURLs(page, size, sort, category, tags, isShortURL)
-		if err != nil {
-			slog.Error("list urls error", "component", "web_handler", "error", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		for _, u := range urls {
-			displayURLs = append(displayURLs, indexURL{URL: u, TotalWeight: u.AutoWeight + u.ManualWeight})
-		}
+	params := parseListParams(r)
+	displayURLs, _, _, err := h.fetchURLs(params)
+	if err != nil {
+		slog.Error("fetch urls error", "component", "web_handler", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	// Return empty body if no results
@@ -401,7 +365,12 @@ func (h *WebHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-	h.renderTemplate(w, "login", nil)
+	data := struct {
+		Version string
+	}{
+		Version: h.version,
+	}
+	h.renderTemplate(w, "login", data)
 }
 
 // HandleDetail serves GET /urls/{id} - the URL detail page.
@@ -435,18 +404,43 @@ func (h *WebHandler) HandleDetail(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// PageData for JSON block consumed by detailPage()
+	pageJSON := map[string]interface{}{
+		"IsNew": false,
+		"URL": map[string]interface{}{
+			"ID":            urlEntity.ID,
+			"Link":          urlEntity.Link,
+			"Title":         urlEntity.Title,
+			"Description":   urlEntity.Description,
+			"Keywords":      urlEntity.Keywords,
+			"Category":      urlEntity.Category,
+			"Tags":          urlEntity.Tags,
+			"ManualWeight":  urlEntity.ManualWeight,
+			"AutoWeight":    urlEntity.AutoWeight,
+			"VisitCount":    urlEntity.VisitCount,
+			"ShortCode":     urlEntity.ShortCode,
+			"Color":         urlEntity.Color,
+			"Icon":          urlEntity.Icon,
+			"Status":        urlEntity.Status,
+		},
+	}
+
 	data := struct {
 		URL        interface{}
 		TagList    []string
 		IsNew      bool
 		TTLOptions []config.ShortTTLOption
 		Categories []string
+		Version    string
+		PageData   map[string]interface{}
 	}{
 		URL:        urlEntity,
 		TagList:    tagList,
 		IsNew:      false,
 		TTLOptions: h.shortCfg.TTLOptions,
 		Categories: h.categories,
+		Version:    h.version,
+		PageData:   pageJSON,
 	}
 
 	h.renderTemplate(w, "detail", data)
@@ -459,18 +453,28 @@ func (h *WebHandler) HandleNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// PageData for JSON block consumed by detailPage()
+	pageJSON := map[string]interface{}{
+		"IsNew": true,
+		"URL":   map[string]interface{}{},
+	}
+
 	data := struct {
 		URL        interface{}
 		TagList    []string
 		IsNew      bool
 		TTLOptions []config.ShortTTLOption
 		Categories []string
+		Version    string
+		PageData   map[string]interface{}
 	}{
 		URL:        &entity.URL{},
 		TagList:    nil,
 		IsNew:      true,
 		TTLOptions: h.shortCfg.TTLOptions,
 		Categories: h.categories,
+		Version:    h.version,
+		PageData:   pageJSON,
 	}
 
 	h.renderTemplate(w, "detail", data)

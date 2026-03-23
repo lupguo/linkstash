@@ -92,7 +92,7 @@ func ProvideWebHandler(
 	shortCfg *config.ShortConfig,
 	cfg *config.Config,
 ) *handler.WebHandler {
-	return handler.NewWebHandler(urlUsecase, searchUsecase, authCfg, shortCfg, cfg.Categories, "web")
+	return handler.NewWebHandler(urlUsecase, searchUsecase, authCfg, shortCfg, cfg.Categories, "web", AppVersion)
 }
 
 // --- Provider sets ---

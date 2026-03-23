@@ -10,13 +10,21 @@ BIN_DIR := bin
 DATA_DIR := data
 CONF := conf/app_dev.yaml
 
-.PHONY: all build build-server build-cli clean run stop restart test smoke-test wire tidy lint fmt help
+# Frontend tools
+TAILWIND := tools/tailwindcss
+ESBUILD := tools/esbuild
+CSS_SRC := web/src/css/app.css
+CSS_OUT := web/static/css/app.css
+JS_SRC := web/src/js/app.js
+JS_OUT := web/static/js/app.js
+
+.PHONY: all build build-server build-cli clean run stop restart test smoke-test wire tidy lint fmt help frontend frontend-css frontend-js dev-frontend
 
 ## Default target
 all: build
 
-## Build both server and CLI
-build: build-server build-cli
+## Build both server and CLI (with frontend)
+build: frontend build-server build-cli
 
 build-server:
 	@echo ">>> Building server..."
@@ -27,6 +35,24 @@ build-cli:
 	@echo ">>> Building CLI..."
 	@mkdir -p $(BIN_DIR)
 	CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o $(BIN_DIR)/linkstash ./cmd/cli/
+
+## Frontend build
+frontend: frontend-css frontend-js
+
+frontend-css:
+	@echo ">>> Building CSS..."
+	@mkdir -p web/static/css
+	$(TAILWIND) -i $(CSS_SRC) -o $(CSS_OUT) --minify
+
+frontend-js:
+	@echo ">>> Building JS..."
+	@mkdir -p web/static/js
+	$(ESBUILD) $(JS_SRC) --bundle --minify --outfile=$(JS_OUT)
+
+dev-frontend:
+	@echo ">>> Watching frontend files..."
+	$(TAILWIND) -i $(CSS_SRC) -o $(CSS_OUT) --watch &
+	$(ESBUILD) $(JS_SRC) --bundle --outfile=$(JS_OUT) --watch
 
 ## Run server (foreground)
 run: build-server
@@ -112,17 +138,19 @@ release:
 help:
 	@echo "LinkStash Makefile Targets:"
 	@echo ""
-	@echo "  make build        Build server + CLI"
-	@echo "  make run          Build and run server (foreground)"
-	@echo "  make start        Build and start server (background)"
-	@echo "  make stop         Stop background server"
-	@echo "  make restart      Restart background server"
-	@echo "  make smoke-test   Run smoke test suite"
-	@echo "  make test         Run Go unit tests"
-	@echo "  make wire         Generate wire DI code"
-	@echo "  make tidy         Run go mod tidy"
-	@echo "  make fmt          Format code"
-	@echo "  make lint         Run linter"
-	@echo "  make release      Cross-compile release binaries"
-	@echo "  make clean        Clean build artifacts"
-	@echo "  make help         Show this help"
+	@echo "  make build          Build frontend + server + CLI"
+	@echo "  make frontend       Build frontend CSS + JS"
+	@echo "  make dev-frontend   Watch frontend files (dev mode)"
+	@echo "  make run            Build and run server (foreground)"
+	@echo "  make start          Build and start server (background)"
+	@echo "  make stop           Stop background server"
+	@echo "  make restart        Restart background server"
+	@echo "  make smoke-test     Run smoke test suite"
+	@echo "  make test           Run Go unit tests"
+	@echo "  make wire           Generate wire DI code"
+	@echo "  make tidy           Run go mod tidy"
+	@echo "  make fmt            Format code"
+	@echo "  make lint           Run linter"
+	@echo "  make release        Cross-compile release binaries"
+	@echo "  make clean          Clean build artifacts"
+	@echo "  make help           Show this help"

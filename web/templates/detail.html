@@ -8,31 +8,29 @@
 
     <!-- Header -->
     <h1 class="text-xl font-bold mb-6">
-        {{if .IsNew}}
-        <span class="text-terminal-gray">$</span> touch /urls/new
-        {{else}}
-        <span class="text-terminal-gray">$</span> cat /urls/{{.URL.ID}}
-        {{end}}
+        <span class="text-terminal-gray">$</span>
+        <span x-text="isNew ? 'touch /urls/new' : 'cat /urls/{{.URL.ID}}'"></span>
     </h1>
 
     <!-- Detail Card -->
-    <div class="terminal-card rounded p-6 space-y-4">
+    <div class="terminal-card rounded-lg p-6 space-y-4">
         <!-- Link -->
         <div>
-            <span class="text-terminal-gray text-xs block mb-1">link:{{if .IsNew}} <span class="text-terminal-red">*</span>{{end}}</span>
-            {{if .IsNew}}
-            <input type="url" x-model="form.link"
-                   placeholder="https://example.com — the URL to bookmark"
-                   class="terminal-input w-full px-3 py-2 rounded text-sm" required>
-            {{else}}
-            <div class="flex items-center gap-2 flex-wrap">
-                <a href="{{.URL.Link}}" target="_blank" rel="noopener"
-                   class="text-terminal-cyan hover:underline break-all text-sm">
-                    {{.URL.Link}}
-                </a>
-                <button @click="copyText('{{.URL.Link}}')" class="text-xs text-terminal-gray hover:text-terminal-green transition-colors">[copy]</button>
-            </div>
-            {{end}}
+            <span class="text-terminal-gray text-xs block mb-1">link:<template x-if="isNew"> <span class="text-terminal-red">*</span></template></span>
+            <template x-if="isNew">
+                <input type="url" x-model="form.link"
+                       placeholder="https://example.com — the URL to bookmark"
+                       class="terminal-input w-full px-3 py-2 rounded text-sm" required>
+            </template>
+            <template x-if="!isNew">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <a href="{{.URL.Link}}" target="_blank" rel="noopener"
+                       class="text-terminal-cyan hover:underline break-all text-sm">
+                        {{.URL.Link}}
+                    </a>
+                    <button @click="copyText('{{.URL.Link}}')" class="text-xs text-terminal-gray hover:text-terminal-green transition-colors">[copy]</button>
+                </div>
+            </template>
         </div>
 
         <!-- Short Code & TTL Row -->
@@ -40,32 +38,14 @@
             <div>
                 <span class="text-terminal-gray text-xs mb-1 flex items-center gap-2">
                     short_code:
-                    {{if .IsNew}}
-                    <label class="inline-flex items-center gap-1 cursor-pointer">
-                        <input type="checkbox" x-model="enableShortCode" class="accent-green-500">
-                        <span class="text-terminal-green text-xs">enable</span>
-                    </label>
-                    {{else}}
-                    <template x-if="editing">
+                    <template x-if="isNew || editing">
                         <label class="inline-flex items-center gap-1 cursor-pointer">
                             <input type="checkbox" x-model="enableShortCode" class="accent-green-500">
                             <span class="text-terminal-green text-xs">enable</span>
                         </label>
                     </template>
-                    {{end}}
                 </span>
-                {{if .IsNew}}
-                <template x-if="enableShortCode">
-                    <input type="text" x-model="form.short_code"
-                           placeholder="Custom code or leave empty for auto-generate"
-                           maxlength="16"
-                           class="terminal-input w-full px-3 py-2 rounded text-sm">
-                </template>
-                <template x-if="!enableShortCode">
-                    <p class="text-sm text-terminal-gray">-- disabled --</p>
-                </template>
-                {{else}}
-                <template x-if="!editing">
+                <template x-if="!isNew && !editing">
                     <div class="flex items-center gap-2 flex-wrap text-sm">
                         {{if .URL.ShortCode}}
                         <a href="/s/{{.URL.ShortCode}}" target="_blank" class="text-purple-400 hover:underline break-all">/s/{{.URL.ShortCode}}</a>
@@ -75,47 +55,33 @@
                         {{end}}
                     </div>
                 </template>
-                <template x-if="editing && enableShortCode">
+                <template x-if="(isNew || editing) && enableShortCode">
                     <input type="text" x-model="form.short_code"
                            placeholder="Custom code or leave empty for auto-generate"
                            maxlength="16"
                            class="terminal-input w-full px-3 py-2 rounded text-sm">
                 </template>
-                <template x-if="editing && !enableShortCode">
+                <template x-if="(isNew || editing) && !enableShortCode">
                     <p class="text-sm text-terminal-gray">-- disabled --</p>
                 </template>
-                {{end}}
             </div>
             <div>
                 <span class="text-terminal-gray text-xs block mb-1">ttl:</span>
-                {{if .IsNew}}
-                <template x-if="enableShortCode">
-                    <select x-model="form.ttl" class="terminal-input w-full px-3 py-2 rounded text-sm">
-                        {{range .TTLOptions}}
-                        <option value="{{.Value}}">{{.Label}}</option>
-                        {{end}}
-                    </select>
-                </template>
-                <template x-if="!enableShortCode">
-                    <p class="text-sm text-terminal-gray">-- disabled --</p>
-                </template>
-                {{else}}
-                <template x-if="!editing">
+                <template x-if="!isNew && !editing">
                     <p class="text-sm text-terminal-gray">
                         {{if .URL.ShortExpiresAt}}expires: {{.URL.ShortExpiresAt.Format "2006-01-02 15:04"}}{{else}}-- never --{{end}}
                     </p>
                 </template>
-                <template x-if="editing && enableShortCode">
+                <template x-if="(isNew || editing) && enableShortCode">
                     <select x-model="form.ttl" class="terminal-input w-full px-3 py-2 rounded text-sm">
                         {{range .TTLOptions}}
                         <option value="{{.Value}}">{{.Label}}</option>
                         {{end}}
                     </select>
                 </template>
-                <template x-if="editing && !enableShortCode">
+                <template x-if="(isNew || editing) && !enableShortCode">
                     <p class="text-sm text-terminal-gray">-- disabled --</p>
                 </template>
-                {{end}}
             </div>
         </div>
 
@@ -123,52 +89,18 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
                 <span class="text-terminal-gray text-xs block mb-1">icon:</span>
-                {{if .IsNew}}
-                <input type="text" x-model="form.icon"
-                       placeholder="Emoji, e.g. 🔗 📚 💻 (auto if empty)"
-                       class="terminal-input w-full px-3 py-2 rounded text-sm">
-                {{else}}
-                <template x-if="!editing">
+                <template x-if="!isNew && !editing">
                     <span class="text-sm">{{if .URL.Icon}}{{.URL.Icon}}{{else}}<span class="text-terminal-gray">-- none --</span>{{end}}</span>
                 </template>
-                <template x-if="editing">
+                <template x-if="isNew || editing">
                     <input type="text" x-model="form.icon"
                            placeholder="Emoji, e.g. 🔗 📚 💻"
                            class="terminal-input w-full px-3 py-2 rounded text-sm">
                 </template>
-                {{end}}
             </div>
             <div>
                 <span class="text-terminal-gray text-xs block mb-1">color:</span>
-                {{if .IsNew}}
-                <div class="flex gap-2 items-center flex-wrap">
-                    <button type="button" @click="form.color = ''"
-                            :class="form.color === '' ? 'ring-2 ring-white' : ''"
-                            class="w-6 h-6 rounded-full bg-terminal-dark border border-terminal-border cursor-pointer" title="none"></button>
-                    <button type="button" @click="form.color = 'green'"
-                            :class="form.color === 'green' ? 'ring-2 ring-white' : ''"
-                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#00ff41" title="green"></button>
-                    <button type="button" @click="form.color = 'red'"
-                            :class="form.color === 'red' ? 'ring-2 ring-white' : ''"
-                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#ff6b6b" title="red"></button>
-                    <button type="button" @click="form.color = 'cyan'"
-                            :class="form.color === 'cyan' ? 'ring-2 ring-white' : ''"
-                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#4ecdc4" title="cyan"></button>
-                    <button type="button" @click="form.color = 'yellow'"
-                            :class="form.color === 'yellow' ? 'ring-2 ring-white' : ''"
-                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#ffd93d" title="yellow"></button>
-                    <button type="button" @click="form.color = 'purple'"
-                            :class="form.color === 'purple' ? 'ring-2 ring-white' : ''"
-                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#c084fc" title="purple"></button>
-                    <button type="button" @click="form.color = 'orange'"
-                            :class="form.color === 'orange' ? 'ring-2 ring-white' : ''"
-                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#fb923c" title="orange"></button>
-                    <button type="button" @click="form.color = 'blue'"
-                            :class="form.color === 'blue' ? 'ring-2 ring-white' : ''"
-                            class="w-6 h-6 rounded-full cursor-pointer" style="background:#60a5fa" title="blue"></button>
-                </div>
-                {{else}}
-                <template x-if="!editing">
+                <template x-if="!isNew && !editing">
                     <div class="flex items-center gap-2">
                         {{if .URL.Color}}
                         <span class="inline-block w-4 h-4 rounded-full card-theme-{{.URL.Color}}" style="border-width:2px"></span>
@@ -178,132 +110,73 @@
                         {{end}}
                     </div>
                 </template>
-                <template x-if="editing">
-                    <div class="flex gap-2 items-center flex-wrap">
-                        <button type="button" @click="form.color = ''"
-                                :class="form.color === '' ? 'ring-2 ring-white' : ''"
-                                class="w-6 h-6 rounded-full bg-terminal-dark border border-terminal-border cursor-pointer" title="none"></button>
-                        <button type="button" @click="form.color = 'green'"
-                                :class="form.color === 'green' ? 'ring-2 ring-white' : ''"
-                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#00ff41" title="green"></button>
-                        <button type="button" @click="form.color = 'red'"
-                                :class="form.color === 'red' ? 'ring-2 ring-white' : ''"
-                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#ff6b6b" title="red"></button>
-                        <button type="button" @click="form.color = 'cyan'"
-                                :class="form.color === 'cyan' ? 'ring-2 ring-white' : ''"
-                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#4ecdc4" title="cyan"></button>
-                        <button type="button" @click="form.color = 'yellow'"
-                                :class="form.color === 'yellow' ? 'ring-2 ring-white' : ''"
-                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#ffd93d" title="yellow"></button>
-                        <button type="button" @click="form.color = 'purple'"
-                                :class="form.color === 'purple' ? 'ring-2 ring-white' : ''"
-                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#c084fc" title="purple"></button>
-                        <button type="button" @click="form.color = 'orange'"
-                                :class="form.color === 'orange' ? 'ring-2 ring-white' : ''"
-                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#fb923c" title="orange"></button>
-                        <button type="button" @click="form.color = 'blue'"
-                                :class="form.color === 'blue' ? 'ring-2 ring-white' : ''"
-                                class="w-6 h-6 rounded-full cursor-pointer" style="background:#60a5fa" title="blue"></button>
-                    </div>
+                <template x-if="isNew || editing">
+                    {{template "color_picker" .}}
                 </template>
-                {{end}}
             </div>
         </div>
 
         <!-- Title -->
         <div>
             <span class="text-terminal-gray text-xs block mb-1">title:</span>
-            {{if .IsNew}}
-            <input type="text" x-model="form.title"
-                   placeholder="Page title — auto-filled by LLM if left empty"
-                   class="terminal-input w-full px-3 py-2 rounded text-sm">
-            {{else}}
-            <template x-if="!editing">
+            <template x-if="!isNew && !editing">
                 <p class="text-sm">{{if .URL.Title}}{{.URL.Title}}{{else}}<span class="text-terminal-gray">-- no title --</span>{{end}}</p>
             </template>
-            <template x-if="editing">
+            <template x-if="isNew || editing">
                 <input type="text" x-model="form.title"
                        placeholder="Page title — auto-filled by LLM if left empty"
                        class="terminal-input w-full px-3 py-2 rounded text-sm">
             </template>
-            {{end}}
         </div>
 
         <!-- Description -->
         <div>
             <span class="text-terminal-gray text-xs block mb-1">description:</span>
-            {{if .IsNew}}
-            <textarea x-model="form.description"
-                      placeholder="Brief description of the page content"
-                      class="terminal-input w-full px-3 py-2 rounded text-sm" rows="3"></textarea>
-            {{else}}
-            <template x-if="!editing">
+            <template x-if="!isNew && !editing">
                 <p class="text-sm text-terminal-gray">{{if .URL.Description}}{{.URL.Description}}{{else}}-- no description --{{end}}</p>
             </template>
-            <template x-if="editing">
+            <template x-if="isNew || editing">
                 <textarea x-model="form.description"
                           placeholder="Brief description of the page content"
                           class="terminal-input w-full px-3 py-2 rounded text-sm" rows="3"></textarea>
             </template>
-            {{end}}
         </div>
 
         <!-- Keywords -->
         <div>
             <span class="text-terminal-gray text-xs block mb-1">keywords:</span>
-            {{if .IsNew}}
-            <input type="text" x-model="form.keywords"
-                   placeholder="Comma-separated keywords, e.g. golang,web,api"
-                   class="terminal-input w-full px-3 py-2 rounded text-sm">
-            {{else}}
-            <template x-if="!editing">
+            <template x-if="!isNew && !editing">
                 <p class="text-sm">{{if .URL.Keywords}}{{.URL.Keywords}}{{else}}<span class="text-terminal-gray">-- none --</span>{{end}}</p>
             </template>
-            <template x-if="editing">
+            <template x-if="isNew || editing">
                 <input type="text" x-model="form.keywords"
                        placeholder="Comma-separated keywords, e.g. golang,web,api"
                        class="terminal-input w-full px-3 py-2 rounded text-sm">
             </template>
-            {{end}}
         </div>
 
         <!-- Category & Tags Row -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
                 <span class="text-terminal-gray text-xs block mb-1">category:</span>
-                {{if .IsNew}}
-                <select x-model="form.category"
-                       class="terminal-input w-full px-3 py-2 rounded text-sm">
-                    <option value="">-- 选择分类 --</option>
-                    {{range .Categories}}
-                    <option value="{{.}}">{{.}}</option>
-                    {{end}}
-                </select>
-                {{else}}
-                <template x-if="!editing">
+                <template x-if="!isNew && !editing">
                     <span class="inline-block px-2 py-1 border border-terminal-cyan text-terminal-cyan text-xs rounded">
                         {{if .URL.Category}}{{.URL.Category}}{{else}}uncategorized{{end}}
                     </span>
                 </template>
-                <template x-if="editing">
+                <template x-if="isNew || editing">
                     <select x-model="form.category"
                            class="terminal-input w-full px-3 py-2 rounded text-sm">
-                        <option value="">-- 选择分类 --</option>
+                        <option value="">-- select category --</option>
                         {{range .Categories}}
                         <option value="{{.}}">{{.}}</option>
                         {{end}}
                     </select>
                 </template>
-                {{end}}
             </div>
             <div>
                 <span class="text-terminal-gray text-xs block mb-1">tags:</span>
-                {{if .IsNew}}
-                <input type="text" x-model="form.tags"
-                       placeholder="Comma-separated tags, e.g. tutorial,reference"
-                       class="terminal-input w-full px-3 py-2 rounded text-sm">
-                {{else}}
-                <template x-if="!editing">
+                <template x-if="!isNew && !editing">
                     <div class="flex flex-wrap gap-1">
                         {{if .URL.Tags}}
                         {{range .TagList}}
@@ -314,12 +187,11 @@
                         {{end}}
                     </div>
                 </template>
-                <template x-if="editing">
+                <template x-if="isNew || editing">
                     <input type="text" x-model="form.tags"
                            placeholder="Comma-separated tags, e.g. tutorial,reference"
                            class="terminal-input w-full px-3 py-2 rounded text-sm">
                 </template>
-                {{end}}
             </div>
         </div>
 
@@ -348,19 +220,7 @@
             <div>
                 <span class="text-terminal-gray text-xs block mb-1">status:</span>
                 <template x-if="!editing">
-                    <div>
-                    {{if eq .URL.Status "pending"}}
-                    <span class="px-2 py-0.5 border border-yellow-500 text-yellow-500 text-xs rounded">pending</span>
-                    {{else if eq .URL.Status "analyzing"}}
-                    <span class="px-2 py-0.5 border border-blue-400 text-blue-400 text-xs rounded">analyzing</span>
-                    {{else if eq .URL.Status "ready"}}
-                    <span class="px-2 py-0.5 border border-terminal-green text-terminal-green text-xs rounded">ready</span>
-                    {{else if eq .URL.Status "failed"}}
-                    <span class="px-2 py-0.5 border border-terminal-red text-terminal-red text-xs rounded">failed</span>
-                    {{else}}
-                    <span class="px-2 py-0.5 border border-terminal-gray text-terminal-gray text-xs rounded">{{.URL.Status}}</span>
-                    {{end}}
-                    </div>
+                    <div>{{template "status_badge" .URL.Status}}</div>
                 </template>
                 <template x-if="editing">
                     <select x-model="form.status" class="terminal-input w-full px-2 py-1 rounded text-xs">
@@ -378,7 +238,6 @@
                 </template>
                 <template x-if="editing">
                     <input type="number" x-model.number="form.visit_count"
-                           placeholder="Number of visits"
                            class="terminal-input w-full px-2 py-1 rounded text-sm">
                 </template>
             </div>
@@ -393,7 +252,6 @@
                 </template>
                 <template x-if="editing">
                     <input type="number" step="0.1" x-model.number="form.manual_weight"
-                           placeholder="0.0 — higher values appear first"
                            class="terminal-input w-full px-2 py-1 rounded text-sm">
                 </template>
             </div>
@@ -423,291 +281,36 @@
     <!-- Action Buttons -->
     <div class="mt-6 flex flex-wrap gap-3">
         {{if .IsNew}}
-        <!-- Create mode -->
         <button @click="createURL()" class="terminal-btn px-4 py-2 rounded text-sm"
                 :disabled="saving">
-            <span x-show="!saving">> create</span>
+            <span x-show="!saving">&gt; create</span>
             <span x-show="saving">creating...</span>
         </button>
         {{else}}
-        <!-- Edit mode -->
         <template x-if="!editing">
-            <button @click="startEdit()" class="terminal-btn px-4 py-2 rounded text-sm">> edit</button>
+            <button @click="startEdit()" class="terminal-btn px-4 py-2 rounded text-sm">&gt; edit</button>
         </template>
         <template x-if="editing">
             <div class="flex gap-3">
                 <button @click="saveEdit()" class="terminal-btn px-4 py-2 rounded text-sm"
                         :disabled="saving">
-                    <span x-show="!saving">> save</span>
+                    <span x-show="!saving">&gt; save</span>
                     <span x-show="saving">saving...</span>
                 </button>
-                <button @click="editing = false" class="terminal-btn terminal-btn-danger px-4 py-2 rounded text-sm">> cancel</button>
+                <button @click="editing = false" class="terminal-btn terminal-btn-danger px-4 py-2 rounded text-sm">&gt; cancel</button>
             </div>
         </template>
-
-        <!-- Delete -->
-        <button @click="confirmDelete()" class="terminal-btn terminal-btn-danger px-4 py-2 rounded text-sm">> delete</button>
+        <button @click="confirmDelete()" class="terminal-btn terminal-btn-danger px-4 py-2 rounded text-sm">&gt; delete</button>
         {{end}}
     </div>
 
     <!-- Messages -->
-    <div x-show="message" class="mt-4 p-3 border rounded text-sm"
+    <div x-show="message" class="mt-4 p-3 border rounded-lg text-sm"
          :class="messageType === 'error' ? 'border-terminal-red text-terminal-red' : 'border-terminal-green text-terminal-green'">
         <span x-text="message"></span>
     </div>
 </div>
 
-<script>
-function detailPage() {
-    const isNew = {{.IsNew}};
-    const autoEdit = !isNew && new URLSearchParams(window.location.search).has('edit');
-    return {
-        isNew: isNew,
-        editing: autoEdit,
-        saving: false,
-        message: '',
-        messageType: '',
-        enableShortCode: isNew ? false : !!'{{.URL.ShortCode}}',
-        form: {
-            link: '',
-            title: isNew ? '' : `{{js .URL.Title}}`,
-            description: isNew ? '' : `{{js .URL.Description}}`,
-            keywords: isNew ? '' : `{{js .URL.Keywords}}`,
-            category: isNew ? '' : `{{js .URL.Category}}`,
-            tags: isNew ? '' : `{{js .URL.Tags}}`,
-            manual_weight: isNew ? 0 : {{.URL.ManualWeight}},
-            visit_count: isNew ? 0 : {{.URL.VisitCount}},
-            short_code: isNew ? '' : '{{.URL.ShortCode}}',
-            ttl: '',
-            color: isNew ? '' : '{{.URL.Color}}',
-            icon: isNew ? '' : '{{.URL.Icon}}',
-            status: isNew ? 'pending' : '{{.URL.Status}}',
-        },
-        startEdit() {
-            this.editing = true;
-            this.message = '';
-        },
-        async clearFavicon() {
-            try {
-                const token = getCookie('linkstash_token');
-                const resp = await fetch('/api/urls/{{.URL.ID}}', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token,
-                    },
-                    body: JSON.stringify({ favicon: '' }),
-                });
-                if (resp.ok) {
-                    this.message = 'favicon cleared';
-                    this.messageType = 'success';
-                    setTimeout(() => window.location.reload(), 500);
-                } else {
-                    this.message = 'failed to clear favicon';
-                    this.messageType = 'error';
-                }
-            } catch (e) {
-                this.message = 'network error';
-                this.messageType = 'error';
-            }
-        },
-        copyText(text) {
-            navigator.clipboard.writeText(text).catch(() => {
-                const ta = document.createElement('textarea');
-                ta.value = text;
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
-            });
-            this.message = 'copied to clipboard';
-            this.messageType = 'success';
-            setTimeout(() => this.message = '', 1500);
-        },
-        async createURL() {
-            if (!this.form.link.trim()) {
-                this.message = 'link is required';
-                this.messageType = 'error';
-                return;
-            }
-            this.saving = true;
-            this.message = '';
-            try {
-                const token = getCookie('linkstash_token');
-                // Step 1: Create URL
-                const resp = await fetch('/api/urls', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token,
-                    },
-                    body: JSON.stringify({ link: this.form.link.trim() }),
-                });
-                if (!resp.ok) {
-                    const data = await resp.json();
-                    this.message = (data.error && data.error.message) || 'failed to create url';
-                    this.messageType = 'error';
-                    this.saving = false;
-                    return;
-                }
-                const created = await resp.json();
-                const urlId = created.ID;
-
-                // Step 2: Update extra fields if any are filled
-                const updates = {};
-                if (this.form.title.trim()) updates.title = this.form.title.trim();
-                if (this.form.description.trim()) updates.description = this.form.description.trim();
-                if (this.form.keywords.trim()) updates.keywords = this.form.keywords.trim();
-                if (this.form.category.trim()) updates.category = this.form.category.trim();
-                if (this.form.tags.trim()) updates.tags = this.form.tags.trim();
-                if (this.form.manual_weight) updates.manual_weight = this.form.manual_weight;
-                if (this.form.color.trim()) updates.color = this.form.color.trim();
-                if (this.form.icon.trim()) updates.icon = this.form.icon.trim();
-
-                if (Object.keys(updates).length > 0) {
-                    await fetch('/api/urls/' + urlId, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + token,
-                        },
-                        body: JSON.stringify(updates),
-                    });
-                }
-
-                // Step 3: Create short link if checkbox enabled and code or ttl provided
-                if (this.enableShortCode && (this.form.short_code.trim() || this.form.ttl)) {
-                    const shortBody = { long_url: this.form.link.trim() };
-                    if (this.form.short_code.trim()) shortBody.code = this.form.short_code.trim();
-                    if (this.form.ttl) shortBody.ttl = this.form.ttl;
-                    const shortResp = await fetch('/api/short-links', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + token,
-                        },
-                        body: JSON.stringify(shortBody),
-                    });
-                    if (!shortResp.ok) {
-                        const d = await shortResp.json();
-                        this.message = 'URL created, but short link failed: ' + ((d.error && d.error.message) || 'unknown');
-                        this.messageType = 'error';
-                        setTimeout(() => window.location.href = '/urls/' + urlId, 1500);
-                        this.saving = false;
-                        return;
-                    }
-                }
-
-                // Success — redirect to detail page
-                window.location.href = '/urls/' + urlId;
-            } catch (e) {
-                this.message = 'network error';
-                this.messageType = 'error';
-            }
-            this.saving = false;
-        },
-        async saveEdit() {
-            this.saving = true;
-            this.message = '';
-            try {
-                const token = getCookie('linkstash_token');
-
-                // Update main fields
-                const updates = {
-                    title: this.form.title,
-                    description: this.form.description,
-                    keywords: this.form.keywords,
-                    category: this.form.category,
-                    tags: this.form.tags,
-                    manual_weight: this.form.manual_weight,
-                    visit_count: this.form.visit_count,
-                    color: this.form.color,
-                    icon: this.form.icon,
-                    status: this.form.status,
-                };
-                if (this.enableShortCode) {
-                    updates.short_code = this.form.short_code;
-                    updates.ttl = this.form.ttl;
-                } else {
-                    updates.short_code = '';
-                    updates.ttl = '';
-                }
-                const resp = await fetch('/api/urls/{{.URL.ID}}', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token,
-                    },
-                    body: JSON.stringify(updates),
-                });
-                if (!resp.ok) {
-                    const data = await resp.json();
-                    this.message = (data.error && data.error.message) || 'update failed';
-                    this.messageType = 'error';
-                    this.saving = false;
-                    return;
-                }
-
-                // Update short link if enabled and code changed
-                const origShortCode = '{{.URL.ShortCode}}';
-                if (this.enableShortCode && this.form.short_code.trim() !== origShortCode) {
-                    if (this.form.short_code.trim() && !origShortCode) {
-                        // Create new short link
-                        const shortBody = { long_url: '{{.URL.Link}}' };
-                        shortBody.code = this.form.short_code.trim();
-                        if (this.form.ttl) shortBody.ttl = this.form.ttl;
-                        await fetch('/api/short-links', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': 'Bearer ' + token,
-                            },
-                            body: JSON.stringify(shortBody),
-                        });
-                    }
-                    // If short code already exists, update could be done via short-links API
-                    // but that requires the short link ID, not URL ID
-                }
-
-                this.message = 'updated successfully';
-                this.messageType = 'success';
-                this.editing = false;
-                setTimeout(() => window.location.reload(), 500);
-            } catch (e) {
-                this.message = 'network error';
-                this.messageType = 'error';
-            }
-            this.saving = false;
-        },
-        confirmDelete() {
-            if (confirm('$ rm -rf /urls/{{.URL.ID}} -- are you sure?')) {
-                this.doDelete();
-            }
-        },
-        async doDelete() {
-            try {
-                const token = getCookie('linkstash_token');
-                const resp = await fetch('/api/urls/{{.URL.ID}}', {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token },
-                });
-                if (resp.ok) {
-                    window.location.href = '/';
-                } else {
-                    this.message = 'delete failed';
-                    this.messageType = 'error';
-                }
-            } catch (e) {
-                this.message = 'network error';
-                this.messageType = 'error';
-            }
-        },
-    };
-}
-
-function getCookie(name) {
-    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-    return v ? v.pop() : '';
-}
-</script>
+<!-- Page Data (JSON) — consumed by detailPage() -->
+<script id="page-data" type="application/json">{{json .PageData}}</script>
 {{end}}

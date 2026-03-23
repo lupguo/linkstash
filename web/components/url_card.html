@@ -2,7 +2,7 @@
 <!-- Wrapper: relative container to hold grid slot at fixed height -->
 <div class="relative card-wrapper">
   <!-- Actual card: static by default, absolute on hover to expand -->
-  <div class="terminal-card rounded p-3 group card-default {{if .Color}}card-theme-{{.Color}}{{end}}"
+  <div class="terminal-card rounded-lg p-3 group card-default {{if .Color}}card-theme-{{.Color}}{{end}}"
        x-data="urlCard({ id: {{.ID}}, link: '{{.Link}}', shortCode: '{{.ShortCode}}' })">
 
     <!-- Title with Favicon -->
@@ -43,7 +43,7 @@
     <div class="flex-1"></div>
 
     <!-- Category + Tags row -->
-    <div class="flex items-center gap-1.5 mt-1.5 ml-6 overflow-hidden" style="max-height:22px;">
+    <div class="flex items-center gap-1.5 mt-1.5 ml-6 tags-row">
         {{if .Category}}
         <span class="px-1.5 py-0.5 border border-terminal-cyan text-terminal-cyan rounded text-xs truncate max-w-[80px] flex-shrink-0">
             {{.Category}}
@@ -54,15 +54,7 @@
         <span class="px-1.5 py-0.5 border border-terminal-border text-terminal-gray rounded text-xs truncate max-w-[80px] flex-shrink-0">{{$tag}}</span>
         {{end}}
         {{end}}
-        {{if eq .Status "pending"}}
-        <span class="px-1.5 py-0.5 border border-yellow-500 text-yellow-500 rounded text-xs flex-shrink-0">pending</span>
-        {{else if eq .Status "analyzing"}}
-        <span class="px-1.5 py-0.5 border border-blue-400 text-blue-400 rounded text-xs flex-shrink-0">analyzing</span>
-        {{else if eq .Status "failed"}}
-        <span class="px-1.5 py-0.5 border border-terminal-red text-terminal-red rounded text-xs flex-shrink-0">failed</span>
-        {{else if eq .Status "ready"}}
-        <span class="px-1.5 py-0.5 border border-terminal-green/30 text-terminal-green/50 rounded text-xs flex-shrink-0">ready</span>
-        {{end}}
+        {{template "status_badge" .Status}}
     </div>
 
     <!-- Bottom row: short link + score + date -->
