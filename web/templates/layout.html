@@ -73,7 +73,7 @@
 
         /* Card fixed-height default + hover expand */
         .card-wrapper {
-            height: 140px;
+            height: 165px;
         }
         .card-default {
             height: 100%;
@@ -115,6 +115,11 @@
         .card-wrapper:hover .card-hover-actions {
             display: flex;
         }
+        /* Expand tags row on hover */
+        .card-wrapper:hover .overflow-hidden[style*="max-height"] {
+            max-height: none !important;
+            flex-wrap: wrap;
+        }
         .terminal-btn {
             border: 1px solid #00ff41;
             color: #00ff41;
@@ -133,14 +138,14 @@
             background: #ff6b6b;
             color: #0a0e17;
         }
-        /* Theme color presets */
-        .card-theme-green  { border-color: #00ff41; background: linear-gradient(135deg, rgba(0,255,65,0.08) 0%, transparent 60%); }
-        .card-theme-red    { border-color: #ff6b6b; background: linear-gradient(135deg, rgba(255,107,107,0.08) 0%, transparent 60%); }
-        .card-theme-cyan   { border-color: #4ecdc4; background: linear-gradient(135deg, rgba(78,205,196,0.08) 0%, transparent 60%); }
-        .card-theme-yellow { border-color: #ffd93d; background: linear-gradient(135deg, rgba(255,217,61,0.08) 0%, transparent 60%); }
-        .card-theme-purple { border-color: #c084fc; background: linear-gradient(135deg, rgba(192,132,252,0.08) 0%, transparent 60%); }
-        .card-theme-orange { border-color: #fb923c; background: linear-gradient(135deg, rgba(251,146,60,0.08) 0%, transparent 60%); }
-        .card-theme-blue   { border-color: #60a5fa; background: linear-gradient(135deg, rgba(96,165,250,0.08) 0%, transparent 60%); }
+        /* Theme color presets — background only, no border color change */
+        .card-theme-green  { background: rgba(0,255,65,0.06); }
+        .card-theme-red    { background: rgba(255,107,107,0.06); }
+        .card-theme-cyan   { background: rgba(78,205,196,0.06); }
+        .card-theme-yellow { background: rgba(255,217,61,0.06); }
+        .card-theme-purple { background: rgba(192,132,252,0.06); }
+        .card-theme-orange { background: rgba(251,146,60,0.06); }
+        .card-theme-blue   { background: rgba(96,165,250,0.06); }
 
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }

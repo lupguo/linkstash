@@ -65,6 +65,19 @@ func NewWebHandler(
 		"safeURL": func(s string) template.URL {
 			return template.URL(s)
 		},
+		"splitTags": func(tags string) []string {
+			if tags == "" {
+				return nil
+			}
+			var result []string
+			for _, t := range strings.Split(tags, ",") {
+				t = strings.TrimSpace(t)
+				if t != "" {
+					result = append(result, t)
+				}
+			}
+			return result
+		},
 	}
 
 	// Page templates to parse individually with the layout
@@ -218,8 +231,9 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 
 	type indexURL struct {
 		*entity.URL
-		Score    float64
-		HasScore bool
+		Score       float64
+		HasScore    bool
+		TotalWeight float64
 	}
 
 	var (
@@ -240,7 +254,8 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 		total = int64(searchTotal)
 		for _, item := range results {
-			displayURLs = append(displayURLs, indexURL{URL: item.URL, Score: item.Score, HasScore: true})
+			tw := item.URL.AutoWeight + item.URL.ManualWeight
+			displayURLs = append(displayURLs, indexURL{URL: item.URL, Score: item.Score, HasScore: true, TotalWeight: tw})
 		}
 	} else {
 		// Normal list mode
@@ -252,7 +267,7 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 		total = listTotal
 		for _, u := range urls {
-			displayURLs = append(displayURLs, indexURL{URL: u})
+			displayURLs = append(displayURLs, indexURL{URL: u, TotalWeight: u.AutoWeight + u.ManualWeight})
 		}
 	}
 
@@ -311,8 +326,9 @@ func (h *WebHandler) HandleIndexCards(w http.ResponseWriter, r *http.Request) {
 
 	type indexURL struct {
 		*entity.URL
-		Score    float64
-		HasScore bool
+		Score       float64
+		HasScore    bool
+		TotalWeight float64
 	}
 
 	var displayURLs []indexURL
@@ -326,7 +342,8 @@ func (h *WebHandler) HandleIndexCards(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for _, item := range results {
-			displayURLs = append(displayURLs, indexURL{URL: item.URL, Score: item.Score, HasScore: true})
+			tw := item.URL.AutoWeight + item.URL.ManualWeight
+			displayURLs = append(displayURLs, indexURL{URL: item.URL, Score: item.Score, HasScore: true, TotalWeight: tw})
 		}
 	} else {
 		urls, _, err := h.urlUsecase.ListURLs(page, size, sort, category, tags, isShortURL)
@@ -336,7 +353,7 @@ func (h *WebHandler) HandleIndexCards(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for _, u := range urls {
-			displayURLs = append(displayURLs, indexURL{URL: u})
+			displayURLs = append(displayURLs, indexURL{URL: u, TotalWeight: u.AutoWeight + u.ManualWeight})
 		}
 	}
 

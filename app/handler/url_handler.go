@@ -70,13 +70,14 @@ func (h *URLHandler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		_ = h.usecase.UpdateURL(url)
 	}
 
-	// Async fetch favicon
+	// Async fetch favicon — if found, clear emoji icon to prefer favicon
 	go func(urlID uint, link string) {
 		favicon := fetchFavicon(link)
 		if favicon != "" {
 			u, _ := h.usecase.GetURL(urlID)
 			if u != nil {
 				u.Favicon = favicon
+				u.Icon = "" // clear emoji icon, prefer favicon
 				h.usecase.UpdateURL(u)
 			}
 		}

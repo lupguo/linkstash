@@ -222,6 +222,20 @@ function urlCard(data) {
         shortCode: data.shortCode,
         linkCopied: false,
         shortCopied: false,
+        trackVisit() {
+            // Async visit tracking via sendBeacon — doesn't block navigation
+            const token = getCookie('linkstash_token');
+            const url = '/api/urls/' + this.id + '/visit';
+            if (navigator.sendBeacon) {
+                const blob = new Blob(['{}'], { type: 'application/json' });
+                // sendBeacon doesn't support custom headers, use fetch with keepalive
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    keepalive: true,
+                }).catch(() => {});
+            }
+        },
         copyLink() {
             copyToClipboard(this.link);
             this.linkCopied = true;

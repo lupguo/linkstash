@@ -6,71 +6,75 @@
        x-data="urlCard({ id: {{.ID}}, link: '{{.Link}}', shortCode: '{{.ShortCode}}' })">
 
     <!-- Title with Favicon -->
-    <div class="flex items-start gap-2 pr-4">
+    <div class="flex items-center gap-2 min-w-0">
         {{if .Favicon}}
-        <img src="{{.Favicon | safeURL}}" class="w-4 h-4 rounded flex-shrink-0 mt-0.5">
+        <img src="{{.Favicon | safeURL}}" class="w-4 h-4 rounded flex-shrink-0">
         {{else}}
-        <span class="w-4 h-4 flex-shrink-0 mt-0.5 text-sm leading-4">{{if .Icon}}{{.Icon}}{{else}}🔗{{end}}</span>
+        <span class="w-4 h-4 flex-shrink-0 text-sm leading-4">{{if .Icon}}{{.Icon}}{{else}}🔗{{end}}</span>
         {{end}}
-        <h3 class="text-sm font-semibold truncate flex-1">
-            {{if .Title}}<a href="{{.Link}}" target="_blank" rel="noopener noreferrer" class="hover:underline">{{.Title}}</a>{{else}}<a href="{{.Link}}" target="_blank" rel="noopener noreferrer" class="hover:underline">{{.Link}}</a>{{end}}
+        <h3 class="text-sm font-semibold truncate flex-1 min-w-0">
+            {{if .Title}}<a href="{{.Link}}" target="_blank" rel="noopener noreferrer" class="hover:underline" @click="trackVisit()">{{.Title}}</a>{{else}}<a href="{{.Link}}" target="_blank" rel="noopener noreferrer" class="hover:underline" @click="trackVisit()">{{.Link}}</a>{{end}}
         </h3>
         {{if .HasScore}}
         <span class="px-1.5 py-0.5 border border-terminal-green text-terminal-green text-xs rounded font-bold flex-shrink-0">
-            {{printf "%.2f" .Score}}
+            {{printf "%.1f" .Score}}
         </span>
         {{end}}
     </div>
 
-    <!-- Link (if title exists) -->
+    <!-- Link (if title exists) — properly truncated -->
     {{if .Title}}
-    <p class="text-xs text-terminal-cyan truncate mt-0.5 ml-6">
-        <a href="{{.Link}}" target="_blank" rel="noopener noreferrer" class="hover:underline">{{.Link}}</a>
+    <p class="text-xs text-terminal-cyan mt-0.5 ml-6 truncate">
+        <a href="{{.Link}}" target="_blank" rel="noopener noreferrer" class="hover:underline" @click="trackVisit()" title="{{.Link}}">{{.Link}}</a>
     </p>
     {{end}}
 
-    <!-- Description (single line default, full on hover) -->
+    <!-- Description -->
     {{if .Description}}
     <p class="text-xs text-terminal-gray mt-1 ml-6 card-desc">{{.Description}}</p>
     {{end}}
 
-    <!-- Hover-only: extra info (keywords, tags) -->
+    <!-- Hover-only: extra info (keywords) -->
     <div class="card-hover-extra text-xs mt-1 ml-6 space-y-0.5">
       {{if .Keywords}}<p class="text-terminal-gray"><span class="text-terminal-gray/60">keywords:</span> {{.Keywords}}</p>{{end}}
-      {{if .Tags}}<p class="text-terminal-gray"><span class="text-terminal-gray/60">tags:</span> {{.Tags}}</p>{{end}}
     </div>
 
     <!-- Flex spacer: pushes bottom content down in fixed-height mode -->
     <div class="flex-1"></div>
 
-    <!-- Category + Status row -->
-    <div class="flex items-center gap-2 mt-1 text-xs ml-6">
+    <!-- Category + Tags row -->
+    <div class="flex items-center gap-1.5 mt-1.5 ml-6 overflow-hidden" style="max-height:22px;">
         {{if .Category}}
-        <span class="px-1.5 py-0.5 border border-terminal-cyan text-terminal-cyan rounded truncate">
+        <span class="px-1.5 py-0.5 border border-terminal-cyan text-terminal-cyan rounded text-xs truncate max-w-[80px] flex-shrink-0">
             {{.Category}}
         </span>
         {{end}}
+        {{if .Tags}}
+        {{range $tag := .Tags | splitTags}}
+        <span class="px-1.5 py-0.5 border border-terminal-border text-terminal-gray rounded text-xs truncate max-w-[80px] flex-shrink-0">{{$tag}}</span>
+        {{end}}
+        {{end}}
         {{if eq .Status "pending"}}
-        <span class="px-1.5 py-0.5 border border-yellow-500 text-yellow-500 rounded flex-shrink-0">pending</span>
+        <span class="px-1.5 py-0.5 border border-yellow-500 text-yellow-500 rounded text-xs flex-shrink-0">pending</span>
         {{else if eq .Status "analyzing"}}
-        <span class="px-1.5 py-0.5 border border-blue-400 text-blue-400 rounded flex-shrink-0">analyzing</span>
+        <span class="px-1.5 py-0.5 border border-blue-400 text-blue-400 rounded text-xs flex-shrink-0">analyzing</span>
         {{else if eq .Status "failed"}}
-        <span class="px-1.5 py-0.5 border border-terminal-red text-terminal-red rounded flex-shrink-0">failed</span>
+        <span class="px-1.5 py-0.5 border border-terminal-red text-terminal-red rounded text-xs flex-shrink-0">failed</span>
         {{else if eq .Status "ready"}}
-        <span class="px-1.5 py-0.5 border border-terminal-green/50 text-terminal-green/70 rounded flex-shrink-0">ready</span>
+        <span class="px-1.5 py-0.5 border border-terminal-green/30 text-terminal-green/50 rounded text-xs flex-shrink-0">ready</span>
         {{end}}
     </div>
 
-    <!-- Bottom row: short link + weight + visits + date -->
-    <div class="flex items-center gap-2 mt-1 text-xs ml-6">
+    <!-- Bottom row: short link + score + date -->
+    <div class="flex items-center gap-2 mt-1.5 ml-6 text-xs">
         {{if .ShortCode}}
         <button @click.stop="copyShortLink()" class="px-1.5 py-0.5 border border-purple-400 text-purple-400 rounded hover:bg-purple-400/10 transition-colors cursor-pointer flex-shrink-0" title="click to copy short link">
             <span x-show="!shortCopied">/s/<span x-text="shortCode">{{.ShortCode}}</span></span>
             <span x-show="shortCopied" class="text-terminal-green">copied!</span>
         </button>
         {{end}}
-        <span class="ml-auto text-terminal-gray whitespace-nowrap">
-            {{printf "%.2f" .AutoWeight}} &middot; {{.VisitCount}}v &middot; {{.CreatedAt.Format "01-02"}}
+        <span class="ml-auto text-terminal-gray whitespace-nowrap tabular-nums">
+            <span class="text-terminal-green/70">{{printf "%.1f" .TotalWeight}}</span> &middot; {{.CreatedAt.Format "2006/01/02"}}
         </span>
     </div>
 

@@ -10,7 +10,7 @@ BIN_DIR := bin
 DATA_DIR := data
 CONF := conf/app_dev.yaml
 
-.PHONY: all build build-server build-cli clean run stop test smoke-test wire tidy lint fmt help
+.PHONY: all build build-server build-cli clean run stop restart test smoke-test wire tidy lint fmt help
 
 ## Default target
 all: build
@@ -40,14 +40,25 @@ start: build-server
 	@. $$HOME/.my.env && nohup $(BIN_DIR)/linkstash-server -conf $(CONF) > /tmp/linkstash.log 2>&1 & echo $$! > /tmp/linkstash.pid
 	@echo "Server started (PID: $$(cat /tmp/linkstash.pid)), log: /tmp/linkstash.log"
 
-## Stop background server
+## Stop background server (only kills linkstash-server processes)
 stop:
 	@if [ -f /tmp/linkstash.pid ]; then \
-		kill $$(cat /tmp/linkstash.pid) 2>/dev/null && echo "Server stopped" || echo "Server not running"; \
+		PID=$$(cat /tmp/linkstash.pid); \
+		if kill -0 $$PID 2>/dev/null; then \
+			kill $$PID && echo "Server stopped (PID: $$PID)"; \
+		else \
+			echo "PID $$PID not running"; \
+		fi; \
 		rm -f /tmp/linkstash.pid; \
 	else \
-		echo "No PID file found"; \
+		echo "No PID file found, trying pkill..."; \
+		pkill -f 'linkstash-server' 2>/dev/null && echo "Server stopped" || echo "Server not running"; \
 	fi
+
+## Restart server
+restart: stop
+	@sleep 1
+	@$(MAKE) start
 
 ## Run smoke test (starts server, tests, stops)
 smoke-test: build
@@ -105,6 +116,7 @@ help:
 	@echo "  make run          Build and run server (foreground)"
 	@echo "  make start        Build and start server (background)"
 	@echo "  make stop         Stop background server"
+	@echo "  make restart      Restart background server"
 	@echo "  make smoke-test   Run smoke test suite"
 	@echo "  make test         Run Go unit tests"
 	@echo "  make wire         Generate wire DI code"

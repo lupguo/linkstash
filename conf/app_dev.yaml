@@ -46,6 +46,8 @@ llm:
     url_analysis: |
       分析以下网页内容，返回JSON格式：
       {"title":"标题","keywords":"关键词1,关键词2","description":"50字内摘要","category":"分类","tags":"标签1,标签2"}
+      category必须从以下选项中选择：技术、设计、产品、商业、科学、生活、工具、资讯、其他
+      tags基于内容自由生成，用逗号分隔，2-5个标签。
       仅返回JSON，不要其他内容。
     url_categorize: |
       根据以下URL和标题，判断最合适的分类（建议从以下选项中选择，也可自定义）：

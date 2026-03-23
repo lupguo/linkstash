@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	neturl "net/url"
 	"strings"
 	"time"
 
@@ -120,17 +121,11 @@ func (w *WorkerService) doProcessURL(ctx context.Context, urlID uint) error {
 		return fmt.Errorf("set analyzing: %w", err)
 	}
 
-	// 2. Fetch page content
-	resp, err := w.httpClient.Get(url.Link)
+	// 2. Fetch page content (with fallback to root domain)
+	pageContent, err := w.fetchPageContent(url.Link)
 	if err != nil {
-		return fmt.Errorf("fetch url: %w", err)
+		return fmt.Errorf("fetch url(%s): %w", url.Link, err)
 	}
-	defer resp.Body.Close()
-	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 50*1024))
-	if err != nil {
-		return fmt.Errorf("read body: %w", err)
-	}
-	pageContent := string(bodyBytes)
 
 	// 3. LLM chat completion for analysis
 	prompt := w.prompts["url_analysis"]
@@ -219,18 +214,104 @@ func (w *WorkerService) doProcessURL(ctx context.Context, urlID uint) error {
 		return fmt.Errorf("save embedding: %w", err)
 	}
 
-	slog.Info("successfully processed url", "component", "worker", "url_id", urlID, "title", parsed.Title)
+	slog.Info(fmt.Sprintf("successfully processed url(%s)", url.Link), "component", "worker", "url_id", urlID, "title", parsed.Title)
 	return nil
 }
 
+// fetchPageContent fetches the page content for analysis.
+// If the original URL returns an error or Cloudflare challenge page,
+// it falls back to the root domain to get basic site information.
+func (w *WorkerService) fetchPageContent(link string) (string, error) {
+	content, err := w.doFetch(link)
+	if err == nil && !isBlockedContent(content) {
+		return content, nil
+	}
+
+	// Fallback: try root domain
+	parsed, parseErr := neturl.Parse(link)
+	if parseErr != nil || parsed.Host == "" {
+		if err != nil {
+			return "", err
+		}
+		return content, nil // return whatever we got
+	}
+
+	rootURL := parsed.Scheme + "://" + parsed.Host + "/"
+	if rootURL == link || rootURL+"/" == link {
+		if err != nil {
+			return "", err
+		}
+		return content, nil // already at root
+	}
+
+	slog.Info(fmt.Sprintf("fallback to root domain(%s) for url(%s)", rootURL, link), "component", "worker")
+	rootContent, rootErr := w.doFetch(rootURL)
+	if rootErr == nil && !isBlockedContent(rootContent) {
+		return rootContent, nil
+	}
+
+	// If root also fails, return original content if any
+	if content != "" {
+		return content, nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return "", rootErr
+}
+
+// doFetch fetches a URL and returns its body content (up to 50KB).
+func (w *WorkerService) doFetch(url string) (string, error) {
+	resp, err := w.httpClient.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("http get: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return "", fmt.Errorf("status %d", resp.StatusCode)
+	}
+
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 50*1024))
+	if err != nil {
+		return "", fmt.Errorf("read body: %w", err)
+	}
+	return string(bodyBytes), nil
+}
+
+// isBlockedContent checks if the content looks like a Cloudflare challenge
+// or an auth-wall page rather than actual content.
+func isBlockedContent(content string) bool {
+	if len(content) < 100 {
+		return true
+	}
+	lower := strings.ToLower(content)
+	markers := []string{
+		"cf-mitigated",
+		"challenge-platform",
+		"cf-chl-bypass",
+		"just a moment",
+		"checking your browser",
+		"attention required",
+		"ray id",
+	}
+	for _, m := range markers {
+		if strings.Contains(lower, m) {
+			return true
+		}
+	}
+	return false
+}
+
 func (w *WorkerService) setURLFailed(urlID uint, errMsg string) {
-	url, err := w.urlRepo.GetByID(urlID)
+	u, err := w.urlRepo.GetByID(urlID)
 	if err != nil {
 		slog.Error("get url for failure", "component", "worker", "url_id", urlID, "error", err)
 		return
 	}
-	url.Status = "failed"
-	if err := w.urlRepo.Update(url); err != nil {
+	slog.Warn(fmt.Sprintf("marking url as failed(%s)", u.Link), "component", "worker", "url_id", urlID, "error", errMsg)
+	u.Status = "failed"
+	if err := w.urlRepo.Update(u); err != nil {
 		slog.Error("set url failed status", "component", "worker", "url_id", urlID, "error", err)
 	}
 }
