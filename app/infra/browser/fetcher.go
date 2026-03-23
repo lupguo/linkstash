@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/proto"
 	"github.com/go-rod/stealth"
 )
 
@@ -50,6 +51,15 @@ func (s *BrowserService) FetchPage(ctx context.Context, url string, useProxy boo
 	// Set timeout for page operations
 	timeout := s.PageTimeout()
 	page = page.Timeout(timeout)
+
+	// Override User-Agent to avoid HeadlessChrome detection
+	if err := page.SetUserAgent(&proto.NetworkSetUserAgentOverride{
+		UserAgent:      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+		AcceptLanguage: "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
+		Platform:       "macOS",
+	}); err != nil {
+		slog.Warn("failed to set user agent (non-fatal)", "component", "browser", "error", err)
+	}
 
 	// Navigate to the URL
 	if err := page.Navigate(url); err != nil {

@@ -105,7 +105,12 @@ func (s *BrowserService) launchBrowser(proxyURL string) (*rod.Browser, error) {
 	l = l.Headless(s.cfg.IsHeadless()).
 		Set("no-sandbox").
 		Set("disable-gpu").
-		Set("disable-dev-shm-usage")
+		Set("disable-dev-shm-usage").
+		Set("disable-blink-features", "AutomationControlled").
+		Set("disable-infobars").
+		Set("disable-extensions").
+		Set("window-size", "1920,1080").
+		Set("lang", "en-US")
 
 	if proxyURL != "" {
 		l = l.Proxy(proxyURL)
