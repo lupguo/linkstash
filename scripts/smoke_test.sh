@@ -164,7 +164,12 @@ check "Deleted URL not in list" "\"total\":${EXPECTED_TOTAL}" "$LIST_AFTER_DEL"
 DUP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST $SERVER/api/urls \
     -H "$AUTH" -H "Content-Type: application/json" \
     -d "{\"link\":\"${URL_A}\"}")
-check_status "Duplicate URL returns 500" "500" "$DUP_STATUS"
+check_status "Duplicate URL returns 409" "409" "$DUP_STATUS"
+
+DUP_RESP=$(curl -s -X POST $SERVER/api/urls \
+    -H "$AUTH" -H "Content-Type: application/json" \
+    -d "{\"link\":\"${URL_A}\"}")
+check "Duplicate URL friendly message" '该链接已存在' "$DUP_RESP"
 
 # Test: Empty link
 EMPTY_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST $SERVER/api/urls \
@@ -172,11 +177,28 @@ EMPTY_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST $SERVER/api/urls \
     -d '{"link":""}')
 check_status "Empty link returns 500" "500" "$EMPTY_STATUS"
 
-# Test: Update visit_count via PUT
+# Test: Update visit_count via PUT and verify auto_weight sync
 UPDATE_VC_RESP=$(curl -s -X PUT "$SERVER/api/urls/${URL_A_ID}" \
     -H "$AUTH" -H "Content-Type: application/json" \
     -d '{"visit_count":42}')
 check "Update visit_count" '"visit_count":42' "$UPDATE_VC_RESP"
+check "Auto_weight synced with visit_count" '"auto_weight":42' "$UPDATE_VC_RESP"
+
+# Test: Update short_code via PUT
+UPDATE_SC_RESP=$(curl -s -X PUT "$SERVER/api/urls/${URL_A_ID}" \
+    -H "$AUTH" -H "Content-Type: application/json" \
+    -d "{\"short_code\":\"sc-${UNIQUE}\"}")
+check "Update short_code" "\"short_code\":\"sc-${UNIQUE}\"" "$UPDATE_SC_RESP"
+
+# Test: Favicon field exists in response (may be empty initially since async)
+DETAIL_FAV=$(curl -s "$SERVER/api/urls/${URL_A_ID}" -H "$AUTH")
+check "Favicon field in response" '"color"' "$DETAIL_FAV"
+
+# Test: Update status via PUT
+UPDATE_ST_RESP=$(curl -s -X PUT "$SERVER/api/urls/${URL_A_ID}" \
+    -H "$AUTH" -H "Content-Type: application/json" \
+    -d '{"status":"ready"}')
+check "Update status" '"status":"ready"' "$UPDATE_ST_RESP"
 
 # Test: Update color and icon
 UPDATE_CI=$(curl -s -X PUT "$SERVER/api/urls/${URL_A_ID}" \

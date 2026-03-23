@@ -31,13 +31,13 @@ build-cli:
 ## Run server (foreground)
 run: build-server
 	@mkdir -p $(DATA_DIR)
-	$(BIN_DIR)/linkstash-server -conf $(CONF)
+	. $$HOME/.my.env && $(BIN_DIR)/linkstash-server -conf $(CONF)
 
 ## Run server in background
 start: build-server
 	@mkdir -p $(DATA_DIR)
 	@echo ">>> Starting LinkStash server..."
-	@nohup $(BIN_DIR)/linkstash-server -conf $(CONF) > /tmp/linkstash.log 2>&1 & echo $$! > /tmp/linkstash.pid
+	@. $$HOME/.my.env && nohup $(BIN_DIR)/linkstash-server -conf $(CONF) > /tmp/linkstash.log 2>&1 & echo $$! > /tmp/linkstash.pid
 	@echo "Server started (PID: $$(cat /tmp/linkstash.pid)), log: /tmp/linkstash.log"
 
 ## Stop background server

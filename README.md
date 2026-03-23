@@ -4,15 +4,15 @@ LinkStash 是一款面向个人的 URL 资源管理工具，支持 URL 收集、
 
 ## ✨ 核心功能
 
-| 功能 | 说明 |
-|------|------|
-| **URL 管理** | 添加、编辑、删除、分页浏览，支持分类 / 标签 / 热度排序 |
-| **LLM 智能分析** | 添加 URL 后异步抓取页面，LLM 自动提取标题、关键词、摘要、分类、标签 |
-| **混合检索** | FTS5 关键词检索 + 512 维向量语义检索 + 加权混合检索 |
-| **短链服务** | SHA256+Base62 短码生成，302 重定向，支持 TTL 过期（410 Gone） |
-| **Terminal 风格 Web UI** | 暗黑极客主题，htmx 无刷新交互，移动端适配 |
-| **CLI 工具** | `linkstash add / list / search / short / info` 全命令行操作 |
-| **PopClip 插件** | macOS 上选中 URL 一键保存 |
+| 功能                     | 说明                                                    |
+|------------------------|-------------------------------------------------------|
+| **URL 管理**             | 添加、编辑、删除、分页浏览，支持分类 / 标签 / 热度排序                        |
+| **LLM 智能分析**           | 添加 URL 后异步抓取页面，LLM 自动提取标题、关键词、摘要、分类、标签                |
+| **混合检索**               | FTS5 关键词检索 + 512 维向量语义检索 + 加权混合检索                     |
+| **短链服务**               | SHA256+Base62 短码生成，302 重定向，支持 TTL 过期（410 Gone）        |
+| **Terminal 风格 Web UI** | 暗黑极客主题，htmx 无刷新交互，移动端适配                               |
+| **CLI 工具**             | `linkstash add / list / search / short / info` 全命令行操作 |
+| **PopClip 插件**         | macOS 上选中 URL 一键保存                                    |
 
 ## 🏗️ 技术栈
 
@@ -242,14 +242,14 @@ make smoke-test
 
 ## 📐 数据模型
 
-| 表名 | 说明 |
-|------|------|
-| `t_urls` | URL 资源（link, title, keywords, description, category, tags, status, weight, visits） |
-| `t_embeddings` | 512 维向量（BLOB 存储，启动时加载到内存） |
-| `t_short_links` | 短链（code, long_url, expires_at, click_count） |
-| `t_visit_records` | 访问记录（url_id / short_id, ip, user_agent） |
-| `t_llm_logs` | LLM 请求日志（request_type, tokens, latency, success） |
-| `t_urls_fts` | FTS5 虚拟表（title, keywords, description 全文索引） |
+| 表名                | 说明                                                                                 |
+|-------------------|------------------------------------------------------------------------------------|
+| `t_urls`          | URL 资源（link, title, keywords, description, category, tags, status, weight, visits） |
+| `t_embeddings`    | 512 维向量（BLOB 存储，启动时加载到内存）                                                          |
+| `t_short_links`   | 短链（code, long_url, expires_at, click_count）                                        |
+| `t_visit_records` | 访问记录（url_id / short_id, ip, user_agent）                                            |
+| `t_llm_logs`      | LLM 请求日志（request_type, tokens, latency, success）                                   |
+| `t_urls_fts`      | FTS5 虚拟表（title, keywords, description 全文索引）                                        |
 
 ## 🔑 鉴权说明
 
