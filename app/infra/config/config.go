@@ -14,6 +14,14 @@ type Config struct {
 	Auth     AuthConfig     `yaml:"auth"`
 	Database DatabaseConfig `yaml:"database"`
 	LLM      LLMConfig      `yaml:"llm"`
+	Short      ShortConfig    `yaml:"short"`
+	Categories []string       `yaml:"categories"`
+	Proxy      ProxyConfig    `yaml:"proxy"`
+}
+
+// ProxyConfig holds optional HTTP/SOCKS proxy settings.
+type ProxyConfig struct {
+	HTTPProxy string `yaml:"http_proxy"` // e.g. "http://127.0.0.1:8118" or "socks5h://127.0.0.1:1080"
 }
 
 type ServerConfig struct {
@@ -35,6 +43,17 @@ type DatabaseConfig struct {
 	Path string `yaml:"path"`
 }
 
+// ShortTTLOption represents a single TTL choice for the UI dropdown.
+type ShortTTLOption struct {
+	Label string `yaml:"label"` // Display text, e.g. "永久", "1 天"
+	Value string `yaml:"value"` // TTL value, e.g. "", "1d", "7d"
+}
+
+// ShortConfig holds short link generation settings.
+type ShortConfig struct {
+	TTLOptions []ShortTTLOption `yaml:"ttl_options"`
+}
+
 type LLMConfig struct {
 	Chat      LLMEndpointConfig `yaml:"chat"`
 	Embedding LLMEndpointConfig `yaml:"embedding"`
@@ -42,6 +61,7 @@ type LLMConfig struct {
 }
 
 type LLMEndpointConfig struct {
+	Provider   string `yaml:"provider"`
 	Endpoint   string `yaml:"endpoint"`
 	APIKey     string `yaml:"api_key"`
 	Model      string `yaml:"model"`
@@ -81,6 +101,16 @@ func Load(path string) (*Config, error) {
 	}
 	if cfg.Database.Path == "" {
 		cfg.Database.Path = "./data/linkstash.db"
+	}
+
+	// Default TTL options if not configured
+	if len(cfg.Short.TTLOptions) == 0 {
+		cfg.Short.TTLOptions = []ShortTTLOption{
+			{Label: "never", Value: ""},
+			{Label: "1 day", Value: "1d"},
+			{Label: "7 days", Value: "7d"},
+			{Label: "30 days", Value: "30d"},
+		}
 	}
 
 	return &cfg, nil

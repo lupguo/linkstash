@@ -37,13 +37,15 @@ type LLMClient struct {
 }
 
 // NewLLMClient creates a new LLMClient with the given chat and embedding configurations.
-func NewLLMClient(chatCfg, embeddingCfg config.LLMEndpointConfig) *LLMClient {
+// If httpClient is nil, a default client with 30s timeout is used.
+func NewLLMClient(chatCfg, embeddingCfg config.LLMEndpointConfig, httpClient *http.Client) *LLMClient {
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: 30 * time.Second}
+	}
 	return &LLMClient{
 		chatCfg:      chatCfg,
 		embeddingCfg: embeddingCfg,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		httpClient:   httpClient,
 	}
 }
 
@@ -52,6 +54,12 @@ func (c *LLMClient) ChatModel() string { return c.chatCfg.Model }
 
 // EmbeddingModel returns the configured embedding model name.
 func (c *LLMClient) EmbeddingModel() string { return c.embeddingCfg.Model }
+
+// ChatProvider returns the configured chat provider name.
+func (c *LLMClient) ChatProvider() string { return c.chatCfg.Provider }
+
+// EmbeddingProvider returns the configured embedding provider name.
+func (c *LLMClient) EmbeddingProvider() string { return c.embeddingCfg.Provider }
 
 // chatRequest is the request body for the chat completion API.
 type chatRequest struct {
