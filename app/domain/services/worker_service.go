@@ -230,74 +230,78 @@ func (w *WorkerService) doProcessURL(ctx context.Context, urlID uint) error {
 	return nil
 }
 
-// fetchPageContent implements a 3-level fallback strategy:
-//   - Level 1: Optimized HTTP GET with browser-like headers
-//   - Level 2: Rod headless browser (no proxy)
-//   - Level 3: Rod headless browser with proxy
-//   - Fallback: Root domain HTTP request (existing logic)
+// fetchPageContent fetches page content for LLM analysis.
+//   - Browser enabled: Rod headless browser (no proxy → with proxy)
+//   - Browser disabled: HTTP GET with browser-like headers → root domain fallback
 func (w *WorkerService) fetchPageContent(link string) (string, error) {
+	// Browser mode: use Rod directly, no HTTP fallback
+	if w.browserSvc != nil && w.browserSvc.Enabled() {
+		return w.fetchWithBrowser(link)
+	}
+
+	// HTTP mode: optimized HTTP GET + root domain fallback
+	return w.fetchWithHTTP(link)
+}
+
+// fetchWithBrowser fetches using Rod headless browser (no proxy first, then with proxy).
+func (w *WorkerService) fetchWithBrowser(link string) (string, error) {
 	ctx := context.Background()
 
-	// Level 1: Optimized HTTP GET with custom headers
-	content, err := w.doFetch(link)
+	// Try without proxy first
+	content, err := w.browserSvc.FetchPage(ctx, link, false)
 	if err == nil && !isBlockedContent(content) {
-		slog.Debug("L1 HTTP fetch success", "component", "worker", "url", link)
+		slog.Debug("browser fetch success", "component", "worker", "url", link)
 		return content, nil
 	}
 	if err != nil {
-		slog.Info("L1 HTTP fetch failed, trying browser", "component", "worker", "url", link, "error", err)
+		slog.Info("browser fetch failed", "component", "worker", "url", link, "error", err)
 	} else {
-		slog.Info("L1 HTTP fetch returned blocked content, trying browser", "component", "worker", "url", link)
+		slog.Info("browser fetch returned blocked content", "component", "worker", "url", link)
 	}
 
-	// Level 2: Rod headless browser (no proxy)
-	if w.browserSvc != nil && w.browserSvc.Enabled() {
-		brContent, brErr := w.browserSvc.FetchPage(ctx, link, false)
-		if brErr == nil && !isBlockedContent(brContent) {
-			slog.Debug("L2 browser fetch success", "component", "worker", "url", link)
-			return brContent, nil
+	// Try with proxy if configured
+	if w.browserSvc.HasProxy() {
+		proxyContent, proxyErr := w.browserSvc.FetchPage(ctx, link, true)
+		if proxyErr == nil && !isBlockedContent(proxyContent) {
+			slog.Debug("browser+proxy fetch success", "component", "worker", "url", link)
+			return proxyContent, nil
 		}
-		if brErr != nil {
-			slog.Info("L2 browser fetch failed", "component", "worker", "url", link, "error", brErr)
+		if proxyErr != nil {
+			slog.Info("browser+proxy fetch failed", "component", "worker", "url", link, "error", proxyErr)
 		} else {
-			slog.Info("L2 browser fetch returned blocked content", "component", "worker", "url", link)
-		}
-
-		// Level 3: Rod headless browser with proxy
-		if w.browserSvc.HasProxy() {
-			proxyContent, proxyErr := w.browserSvc.FetchPage(ctx, link, true)
-			if proxyErr == nil && !isBlockedContent(proxyContent) {
-				slog.Debug("L3 browser+proxy fetch success", "component", "worker", "url", link)
-				return proxyContent, nil
-			}
-			if proxyErr != nil {
-				slog.Info("L3 browser+proxy fetch failed", "component", "worker", "url", link, "error", proxyErr)
-			} else {
-				slog.Info("L3 browser+proxy fetch returned blocked content", "component", "worker", "url", link)
-			}
+			slog.Info("browser+proxy fetch returned blocked content", "component", "worker", "url", link)
 		}
 	}
 
-	// Fallback: try root domain with HTTP
-	return w.fetchRootDomainFallback(link, content, err)
+	// All browser attempts failed
+	if err != nil {
+		return "", fmt.Errorf("browser fetch: %w", err)
+	}
+	return "", fmt.Errorf("browser fetch: blocked content")
 }
 
-// fetchRootDomainFallback attempts to fetch the root domain as a last resort.
-func (w *WorkerService) fetchRootDomainFallback(link, prevContent string, prevErr error) (string, error) {
+// fetchWithHTTP fetches using optimized HTTP GET with root domain fallback.
+func (w *WorkerService) fetchWithHTTP(link string) (string, error) {
+	content, err := w.doFetch(link)
+	if err == nil && !isBlockedContent(content) {
+		return content, nil
+	}
+
+	// Fallback: try root domain
 	parsed, parseErr := neturl.Parse(link)
 	if parseErr != nil || parsed.Host == "" {
-		if prevErr != nil {
-			return "", prevErr
+		if err != nil {
+			return "", err
 		}
-		return prevContent, nil
+		return content, nil
 	}
 
 	rootURL := parsed.Scheme + "://" + parsed.Host + "/"
 	if rootURL == link || rootURL+"/" == link {
-		if prevErr != nil {
-			return "", prevErr
+		if err != nil {
+			return "", err
 		}
-		return prevContent, nil
+		return content, nil
 	}
 
 	slog.Info("fallback to root domain", "component", "worker", "root_url", rootURL, "url", link)
@@ -306,12 +310,11 @@ func (w *WorkerService) fetchRootDomainFallback(link, prevContent string, prevEr
 		return rootContent, nil
 	}
 
-	// If root also fails, return original content if any
-	if prevContent != "" {
-		return prevContent, nil
+	if content != "" {
+		return content, nil
 	}
-	if prevErr != nil {
-		return "", prevErr
+	if err != nil {
+		return "", err
 	}
 	return "", rootErr
 }
