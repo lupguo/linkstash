@@ -6,7 +6,7 @@
 
 ```bash
 # 一键安装：创建用户/目录、下载二进制+Web资源、配置systemd、安装Chromium
-curl -fsSL https://raw.githubusercontent.com/lupguo/linkstash/main/scripts/INSTALL.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/lupguo/linkstash/main/scripts/deploy.sh | sudo bash
 
 # 填入 LLM API Key
 sudo vim /opt/linkstash/.env
