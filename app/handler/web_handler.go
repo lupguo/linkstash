@@ -296,41 +296,50 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hasMore := len(displayURLs) == params.Size
+
+	// HTMX search/filter request → return search fragment only
+	if r.Header.Get("HX-Request") == "true" {
+		t, ok := h.tmplMap["index"]
+		if !ok {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := t.ExecuteTemplate(w, "search_fragment", fragmentData{
+			URLs:          displayURLs,
+			HasMore:       hasMore,
+			NextPageQuery: buildNextPageQuery(r, params.Page),
+		}); err != nil {
+			slog.Error("render search fragment error", "component", "web_handler", "error", err)
+		}
+		return
+	}
+
+	// Normal request → full page
 	pd := h.newPageData(params.Page, params.Size, total, params.Category, params.Sort)
 	pd.Categories = h.categories
 
-	// PageData for the JSON block consumed by Alpine.js
-	pageJSON := map[string]interface{}{
-		"Query":          params.Query,
-		"SearchType":     params.SearchType,
-		"IsSearch":       isSearch,
-		"FilterCategory": params.Category,
-		"FilterSort":     params.Sort,
-		"Size":           params.Size,
-		"IsShortURL":     params.IsShortURL,
-		"MinScore":       params.MinScore,
-		"Page":           params.Page,
-		"TotalPages":     pd.TotalPages,
-	}
-
 	data := struct {
 		pageData
-		URLs       []indexURL
-		Query      string
-		SearchType string
-		IsSearch   bool
-		IsShortURL bool
-		MinScore   float64
-		PageData   map[string]interface{}
+		URLs          []indexURL
+		Query         string
+		SearchType    string
+		IsSearch      bool
+		IsShortURL    bool
+		MinScore      float64
+		HasMore       bool
+		NextPageQuery string
 	}{
-		pageData:   pd,
-		URLs:       displayURLs,
-		Query:      params.Query,
-		SearchType: params.SearchType,
-		IsSearch:   isSearch,
-		IsShortURL: params.IsShortURL,
-		MinScore:   params.MinScore,
-		PageData:   pageJSON,
+		pageData:      pd,
+		URLs:          displayURLs,
+		Query:         params.Query,
+		SearchType:    params.SearchType,
+		IsSearch:      isSearch,
+		IsShortURL:    params.IsShortURL,
+		MinScore:      params.MinScore,
+		HasMore:       hasMore,
+		NextPageQuery: buildNextPageQuery(r, params.Page),
 	}
 
 	h.renderTemplate(w, "index", data)
