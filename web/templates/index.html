@@ -60,7 +60,7 @@
                 <div class="flex items-center gap-2">
                     <span class="text-terminal-gray text-xs">category:</span>
                     <select name="category" class="terminal-input px-2 py-1 rounded text-xs"
-                            hx-trigger="change" hx-include="closest form">
+                            onchange="this.form.requestSubmit()">
                         <option value="">all</option>
                         {{range .Categories}}
                         <option value="{{.}}" {{if eq . $.FilterCategory}}selected{{end}}>{{.}}</option>
@@ -70,7 +70,7 @@
                 <div class="flex items-center gap-2">
                     <span class="text-terminal-gray text-xs">sort:</span>
                     <select name="sort" class="terminal-input px-2 py-1 rounded text-xs"
-                            hx-trigger="change" hx-include="closest form">
+                            onchange="this.form.requestSubmit()">
                         <option value="weight" {{if eq .FilterSort "weight"}}selected{{end}}>weight</option>
                         <option value="time" {{if eq .FilterSort "time"}}selected{{end}}>time</option>
                     </select>
@@ -78,7 +78,7 @@
                 <div class="flex items-center gap-2">
                     <span class="text-terminal-gray text-xs">size:</span>
                     <select name="size" class="terminal-input px-2 py-1 rounded text-xs"
-                            hx-trigger="change" hx-include="closest form">
+                            onchange="this.form.requestSubmit()">
                         <option value="20" {{if eq .Size 20}}selected{{end}}>20</option>
                         <option value="50" {{if eq .Size 50}}selected{{end}}>50</option>
                         <option value="100" {{if eq .Size 100}}selected{{end}}>100</option>
@@ -88,14 +88,14 @@
                     <input type="checkbox" name="is_shorturl" value="1"
                            {{if .IsShortURL}}checked{{end}}
                            class="accent-green-500"
-                           hx-trigger="change" hx-include="closest form">
+                           onchange="this.form.requestSubmit()">
                     <span class="text-terminal-gray text-xs">short only</span>
                 </label>
                 <div class="flex items-center gap-2" id="min-score-filter"
                      {{if not .IsSearch}}style="display:none"{{end}}>
                     <span class="text-terminal-gray text-xs">score:</span>
                     <select name="min_score" class="terminal-input px-2 py-1 rounded text-xs"
-                            hx-trigger="change" hx-include="closest form">
+                            onchange="this.form.requestSubmit()">
                         <option value="0">all</option>
                         <option value="0.2">≥ 0.2</option>
                         <option value="0.4">≥ 0.4</option>
