@@ -127,72 +127,38 @@ JWT_SECRET=$(openssl rand -hex 32)
 if [[ -f "${INSTALL_DIR}/conf/app_prod.yaml" ]]; then
     warn "  Config already exists, skipping: ${INSTALL_DIR}/conf/app_prod.yaml"
 else
-    cat > "${INSTALL_DIR}/conf/app_prod.yaml" <<YAML
+    # Download example config from repo as base template
+    RAW_URL="https://raw.githubusercontent.com/${REPO}/${VERSION}/conf/app_example.yaml"
+    info "  Downloading config template..."
+    if curl -fsSL "${RAW_URL}" -o "${INSTALL_DIR}/conf/app_prod.yaml"; then
+        # Patch: bind to localhost only, use prod port, inject random secrets, set log level
+        sed -i \
+            -e "s|host: 0.0.0.0|host: 127.0.0.1|" \
+            -e "s|port: 8080|port: ${SERVICE_PORT}|" \
+            -e "s|secret_key: \"passwd\"|secret_key: \"${SECRET_KEY}\"|" \
+            -e "s|jwt_secret: \"linkstash-jwt-secret-key-change-in-production\"|jwt_secret: \"${JWT_SECRET}\"|" \
+            -e "s|level: \"debug\"|level: \"info\"|" \
+            "${INSTALL_DIR}/conf/app_prod.yaml"
+        info "  Created config from template with auto-generated secrets."
+    else
+        warn "  Failed to download config template. Creating minimal config."
+        cat > "${INSTALL_DIR}/conf/app_prod.yaml" <<YAML
 server:
   host: 127.0.0.1
   port: ${SERVICE_PORT}
-
 auth:
   secret_key: "${SECRET_KEY}"
   jwt_secret: "${JWT_SECRET}"
   jwt_expire_hours: 72
-
 database:
   path: "./data/linkstash.db"
-
 log:
   level: "info"
   file: "./logs/app.log"
   format: "text"
-
-short:
-  ttl_options:
-    - label: "永久"
-      value: ""
-    - label: "7 天"
-      value: "7d"
-    - label: "30 天"
-      value: "30d"
-    - label: "1 年"
-      value: "365d"
-
-llm:
-  chat:
-    provider: "openrouter"
-    endpoint: "https://openrouter.ai/api/v1/chat/completions"
-    api_key: "\${OPENROUTER_API_KEY}"
-    model: "minimax/minimax-m2.5"
-  embedding:
-    provider: "openrouter"
-    endpoint: "https://openrouter.ai/api/v1/embeddings"
-    api_key: "\${OPENROUTER_API_KEY}"
-    model: "qwen/qwen3-embedding-8b"
-    dimensions: 512
-  prompts:
-    url_analysis: |
-      分析以下网页内容，返回JSON格式：
-      {"title":"标题","keywords":"关键词1,关键词2","description":"50字内摘要","category":"分类","tags":"标签1,标签2"}
-      category必须从以下选项中选择：技术、设计、产品、商业、科学、生活、工具、资讯、其他
-      tags基于内容自由生成，用逗号分隔，2-5个标签。
-      仅返回JSON，不要其他内容。
-
-categories:
-  - "技术"
-  - "设计"
-  - "产品"
-  - "商业"
-  - "科学"
-  - "生活"
-  - "工具"
-  - "资讯"
-  - "其他"
-
-browser:
-  enabled: true
-  headless: true
-  timeout_sec: 30
 YAML
-    info "  Created config with auto-generated secrets."
+        info "  Created minimal config. See conf/app_example.yaml for full options."
+    fi
 fi
 
 if [[ -f "${INSTALL_DIR}/.env" ]]; then

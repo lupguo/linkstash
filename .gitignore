@@ -9,6 +9,9 @@ dist/
 data/
 *.db
 
+# Dev config (contains local secrets)
+conf/app_dev.yaml
+
 # Frontend build output (generated)
 web/static/css/
 web/static/js/
