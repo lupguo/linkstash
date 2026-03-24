@@ -9,7 +9,6 @@
 import './vendor/htmx.min.js';
 
 // Alpine components
-import { urlListPage } from './alpine/url-list.js';
 import { urlCard } from './alpine/url-card.js';
 import { detailPage } from './alpine/detail-page.js';
 import { loginForm } from './alpine/login-form.js';
@@ -18,7 +17,6 @@ import { loginForm } from './alpine/login-form.js';
 import { copyToClipboard } from './utils.js';
 
 // Expose components to window for Alpine.js x-data bindings
-window.urlListPage = urlListPage;
 window.urlCard = urlCard;
 window.detailPage = detailPage;
 window.loginForm = loginForm;

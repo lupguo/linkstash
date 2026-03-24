@@ -16,8 +16,11 @@
 
     <!-- Bundled JS (htmx + Alpine + app components) -->
     <script src="/static/js/app.js?v={{.Version}}" defer></script>
+    <meta name="htmx-config" content='{"historyCacheSize": 10}'>
 </head>
-<body class="bg-terminal-bg text-terminal-green font-mono min-h-screen flex flex-col" x-data="{ authenticated: document.cookie.includes('linkstash_token') }">
+<body class="bg-terminal-bg text-terminal-green font-mono min-h-screen flex flex-col"
+      x-data="{ authenticated: document.cookie.includes('linkstash_token') }"
+      hx-on::response-error="if(event.detail.xhr.status===401) window.location='/login'">
 
     <!-- Navigation — sticky + glass effect -->
     <nav class="nav-glass sticky top-0 z-40 border-b border-terminal-border px-4 py-3">
