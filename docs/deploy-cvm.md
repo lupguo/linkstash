@@ -27,21 +27,37 @@ sudo chown -R linkstash:linkstash /opt/linkstash
 
 ### 1.2 部署二进制
 
-**方式 A：从 Release 下载**
+**方式 A：一键安装脚本（推荐）**
+
+自动检测 OS/架构，下载最新版本：
 
 ```bash
-VERSION="v0.1.0"  # 替换为最新版本
+# 安装到 /opt/linkstash/bin（自动获取最新 Release）
+curl -fsSL https://raw.githubusercontent.com/lupguo/linkstash/main/scripts/install.sh \
+  | sudo bash -s -- --dir /opt/linkstash/bin
+
+# 或指定版本
+curl -fsSL https://raw.githubusercontent.com/lupguo/linkstash/main/scripts/install.sh \
+  | sudo bash -s -- --dir /opt/linkstash/bin --version v0.2.0
+```
+
+**方式 B：手动下载 Release**
+
+```bash
+# 自动获取最新版本号
+VERSION=$(curl -fsSL https://api.github.com/repos/lupguo/linkstash/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+echo "Latest version: $VERSION"
 REPO="lupguo/linkstash"
 
 # 下载 server 和 CLI
-curl -fsSL "https://github.com/${REPO}/releases/download/${VERSION}/linkstash-server-linux-amd64" \
+sudo curl -fsSL "https://github.com/${REPO}/releases/download/${VERSION}/linkstash-server-linux-amd64" \
   -o /opt/linkstash/bin/linkstash-server
-curl -fsSL "https://github.com/${REPO}/releases/download/${VERSION}/linkstash-linux-amd64" \
+sudo curl -fsSL "https://github.com/${REPO}/releases/download/${VERSION}/linkstash-linux-amd64" \
   -o /opt/linkstash/bin/linkstash
-chmod +x /opt/linkstash/bin/linkstash-server /opt/linkstash/bin/linkstash
+sudo chmod +x /opt/linkstash/bin/linkstash-server /opt/linkstash/bin/linkstash
 ```
 
-**方式 B：从源码编译**
+**方式 C：从源码编译**
 
 ```bash
 # 需要 Go 1.25+、make、esbuild、tailwindcss
@@ -395,8 +411,9 @@ echo '0 3 * * * cp /opt/linkstash/data/linkstash.db /opt/linkstash/data/linkstas
 # 1. 备份
 sudo -u linkstash cp /opt/linkstash/data/linkstash.db /opt/linkstash/data/linkstash.db.bak
 
-# 2. 下载新版本
-VERSION="v0.2.0"
+# 2. 下载最新版本（自动获取）
+VERSION=$(curl -fsSL https://api.github.com/repos/lupguo/linkstash/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+echo "Updating to $VERSION"
 sudo curl -fsSL "https://github.com/lupguo/linkstash/releases/download/${VERSION}/linkstash-server-linux-amd64" \
   -o /opt/linkstash/bin/linkstash-server
 sudo chmod +x /opt/linkstash/bin/linkstash-server
