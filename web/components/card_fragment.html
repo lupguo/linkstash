@@ -1,0 +1,28 @@
+{{define "scroll_fragment"}}
+<!-- Cards appended to list via out-of-band swap -->
+<div hx-swap-oob="beforeend:#url-list">
+    {{range .URLs}}
+    {{template "url_card" .}}
+    {{end}}
+</div>
+
+<!-- Sentinel replaces itself (main swap target) -->
+{{template "load_more_sentinel" .}}
+{{end}}
+
+{{define "search_fragment"}}
+<div id="url-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 items-start">
+    {{range .URLs}}
+    {{template "url_card" .}}
+    {{end}}
+</div>
+
+{{if not .URLs}}
+<div class="terminal-card p-8 rounded-lg text-center">
+    <p class="text-terminal-gray">// no urls found</p>
+    <p class="text-terminal-gray text-xs mt-2">try adding a url or adjusting filters</p>
+</div>
+{{end}}
+
+{{template "load_more_sentinel" .}}
+{{end}}
