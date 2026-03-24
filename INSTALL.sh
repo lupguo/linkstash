@@ -14,7 +14,7 @@ REPO="lupguo/linkstash"
 INSTALL_DIR="/opt/linkstash"
 SERVICE_USER="linkstash"
 SERVICE_PORT="8085"
-VERSION=""
+RELEASE_VERSION=""
 
 # --- Helpers ---
 
@@ -26,7 +26,7 @@ error() { echo -e "\033[31m==>\033[0m $1" >&2; exit 1; }
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --version|-v) VERSION="$2"; shift 2 ;;
+        --version|-v) RELEASE_VERSION="$2"; shift 2 ;;
         *)            error "Unknown option: $1" ;;
     esac
 done
@@ -59,20 +59,20 @@ esac
 info "  Arch: $ARCH"
 
 # Get version
-if [[ -z "$VERSION" ]]; then
+if [[ -z "$RELEASE_VERSION" ]]; then
     info "  Querying latest version..."
-    VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+    RELEASE_VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
         | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
-    if [[ -z "$VERSION" ]]; then
+    if [[ -z "$RELEASE_VERSION" ]]; then
         error "Could not determine latest version. Use --version to specify."
     fi
 fi
-info "  Version: $VERSION"
+info "  Version: $RELEASE_VERSION"
 
 # Check if upgrading
 UPGRADE=false
 if [[ -f "${INSTALL_DIR}/bin/linkstash-server" ]]; then
-    warn "  Existing installation detected. Upgrading to ${VERSION}."
+    warn "  Existing installation detected. Upgrading to ${RELEASE_VERSION}."
     UPGRADE=true
 fi
 
@@ -96,9 +96,9 @@ info "  Directories ready: ${INSTALL_DIR}/{bin,conf,data,logs,web}"
 # [3/6] Download binaries + web resources
 # ============================================================
 
-info "[3/6] Downloading LinkStash ${VERSION}..."
+info "[3/6] Downloading LinkStash ${RELEASE_VERSION}..."
 
-BASE_URL="https://github.com/${REPO}/releases/download/${VERSION}"
+BASE_URL="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}"
 
 info "  Downloading linkstash-server..."
 curl -fsSL "${BASE_URL}/linkstash-server-linux-${ARCH}" -o "${INSTALL_DIR}/bin/linkstash-server"
@@ -128,7 +128,7 @@ if [[ -f "${INSTALL_DIR}/conf/app_prod.yaml" ]]; then
     warn "  Config already exists, skipping: ${INSTALL_DIR}/conf/app_prod.yaml"
 else
     # Download example config from repo as base template
-    RAW_URL="https://raw.githubusercontent.com/${REPO}/${VERSION}/conf/app_example.yaml"
+    RAW_URL="https://raw.githubusercontent.com/${REPO}/${RELEASE_VERSION}/conf/app_example.yaml"
     info "  Downloading config template..."
     if curl -fsSL "${RAW_URL}" -o "${INSTALL_DIR}/conf/app_prod.yaml"; then
         # Patch: bind to localhost only, use prod port, inject random secrets, set log level
@@ -251,7 +251,7 @@ info "  Systemd service configured and enabled."
 
 echo ""
 echo "=============================================="
-echo "  ✅ LinkStash ${VERSION} installed!"
+echo "  ✅ LinkStash ${RELEASE_VERSION} installed!"
 echo "=============================================="
 echo ""
 echo "  Install dir:  ${INSTALL_DIR}"
