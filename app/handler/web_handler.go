@@ -192,6 +192,20 @@ func parseListParams(r *http.Request) listParams {
 	}
 }
 
+// fragmentData holds data for HTMX card fragment templates.
+type fragmentData struct {
+	URLs          []indexURL
+	HasMore       bool
+	NextPageQuery string
+}
+
+// buildNextPageQuery returns the current query params with page incremented.
+func buildNextPageQuery(r *http.Request, currentPage int) string {
+	nextParams := r.URL.Query()
+	nextParams.Set("page", strconv.Itoa(currentPage+1))
+	return nextParams.Encode()
+}
+
 type indexURL struct {
 	*entity.URL
 	Score       float64
@@ -322,7 +336,7 @@ func (h *WebHandler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	h.renderTemplate(w, "index", data)
 }
 
-// HandleIndexCards serves GET /cards - returns only card HTML fragments for infinite scroll.
+// HandleIndexCards serves GET /cards - returns HTMX scroll fragment (OOB cards + sentinel).
 func (h *WebHandler) HandleIndexCards(w http.ResponseWriter, r *http.Request) {
 	if !h.isAuthenticated(r) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -333,28 +347,29 @@ func (h *WebHandler) HandleIndexCards(w http.ResponseWriter, r *http.Request) {
 	displayURLs, _, _, err := h.fetchURLs(params)
 	if err != nil {
 		slog.Error("fetch urls error", "component", "web_handler", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	// Return empty body if no results
-	if len(displayURLs) == 0 {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, `<div id="load-more-sentinel" class="text-center py-4">
+			<span class="text-red-400 text-sm">load failed</span>
+			<button hx-get="/cards?%s" hx-target="#load-more-sentinel"
+					hx-swap="outerHTML" class="text-terminal-green text-sm ml-2 underline">retry</button>
+		</div>`, r.URL.RawQuery)
 		return
 	}
 
-	// Render each card fragment using the "url_card" template
+	hasMore := len(displayURLs) == params.Size
+
 	t, ok := h.tmplMap["index"]
 	if !ok {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	for _, item := range displayURLs {
-		if err := t.ExecuteTemplate(w, "url_card", item); err != nil {
-			slog.Error("render card error", "component", "web_handler", "error", err)
-			return
-		}
+	if err := t.ExecuteTemplate(w, "scroll_fragment", fragmentData{
+		URLs:          displayURLs,
+		HasMore:       hasMore,
+		NextPageQuery: buildNextPageQuery(r, params.Page),
+	}); err != nil {
+		slog.Error("render scroll fragment error", "component", "web_handler", "error", err)
 	}
 }
 
