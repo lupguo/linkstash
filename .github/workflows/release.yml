@@ -44,6 +44,21 @@ jobs:
 
           ls -lh dist/
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build frontend and package web resources
+        run: |
+          npm install -g esbuild @tailwindcss/cli
+
+          mkdir -p web/static/css web/static/js
+          tailwindcss -i web/src/css/app.css -o web/static/css/app.css --minify
+          esbuild web/src/js/app.js --bundle --minify --outfile=web/static/js/app.js
+
+          tar -czf dist/web.tar.gz -C web templates components static
+
       - name: Generate checksums
         run: |
           cd dist

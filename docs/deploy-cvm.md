@@ -2,15 +2,37 @@
 
 在 RockyLinux 8/9 服务器上部署 LinkStash，使用 Caddy 反向代理 + HTTPS。
 
+## 快速安装（推荐）
+
+```bash
+# 一键安装：创建用户/目录、下载二进制+Web资源、配置systemd、安装Chromium
+curl -fsSL https://raw.githubusercontent.com/lupguo/linkstash/main/scripts/INSTALL.sh | sudo bash
+
+# 填入 LLM API Key
+sudo vim /opt/linkstash/.env
+
+# 启动服务
+sudo systemctl start linkstash
+
+# 验证
+curl -s http://127.0.0.1:8085/health
+```
+
+安装完成后只需配置 Caddy 反向代理（见下方第三节）即可对外提供 HTTPS 服务。
+
+---
+
+以下为手动安装步骤（了解细节或排查问题时参考）。
+
 ## 环境要求
 
-| 项目 | 要求 |
-|------|------|
+| 项目   | 要求                                              |
+|------|-------------------------------------------------|
 | 操作系统 | RockyLinux 8+ / AlmaLinux 8+ / CentOS Stream 8+ |
-| 域名 | `linkstash.sapaude.tech` 已解析到服务器公网 IP |
-| 端口 | 80（HTTP）、443（HTTPS）|
-| 内存 | ≥ 1GB（Chromium headless 需要额外内存）|
-| 依赖 | Chromium（URL 自动分析用）|
+| 域名   | `linkstash.sapaude.tech` 已解析到服务器公网 IP           |
+| 端口   | 80（HTTP）、443（HTTPS）                             |
+| 内存   | ≥ 1GB（Chromium headless 需要额外内存）                 |
+| 依赖   | Chromium（URL 自动分析用）                             |
 
 ## 一、安装 LinkStash
 
@@ -27,37 +49,21 @@ sudo chown -R linkstash:linkstash /opt/linkstash
 
 ### 1.2 部署二进制
 
-**方式 A：一键安装脚本（推荐）**
-
-自动检测 OS/架构，下载最新版本：
+**方式 A：从 Release 下载**
 
 ```bash
-# 安装到 /opt/linkstash/bin（自动获取最新 Release）
-curl -fsSL https://raw.githubusercontent.com/lupguo/linkstash/main/scripts/install.sh \
-  | sudo bash -s -- --dir /opt/linkstash/bin
-
-# 或指定版本
-curl -fsSL https://raw.githubusercontent.com/lupguo/linkstash/main/scripts/install.sh \
-  | sudo bash -s -- --dir /opt/linkstash/bin --version v0.2.0
-```
-
-**方式 B：手动下载 Release**
-
-```bash
-# 自动获取最新版本号
-VERSION=$(curl -fsSL https://api.github.com/repos/lupguo/linkstash/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
-echo "Latest version: $VERSION"
+VERSION="v0.1.0"  # 替换为最新版本
 REPO="lupguo/linkstash"
 
 # 下载 server 和 CLI
-sudo curl -fsSL "https://github.com/${REPO}/releases/download/${VERSION}/linkstash-server-linux-amd64" \
+curl -fsSL "https://github.com/${REPO}/releases/download/${VERSION}/linkstash-server-linux-amd64" \
   -o /opt/linkstash/bin/linkstash-server
-sudo curl -fsSL "https://github.com/${REPO}/releases/download/${VERSION}/linkstash-linux-amd64" \
+curl -fsSL "https://github.com/${REPO}/releases/download/${VERSION}/linkstash-linux-amd64" \
   -o /opt/linkstash/bin/linkstash
-sudo chmod +x /opt/linkstash/bin/linkstash-server /opt/linkstash/bin/linkstash
+chmod +x /opt/linkstash/bin/linkstash-server /opt/linkstash/bin/linkstash
 ```
 
-**方式 C：从源码编译**
+**方式 B：从源码编译**
 
 ```bash
 # 需要 Go 1.25+、make、esbuild、tailwindcss
@@ -361,9 +367,9 @@ sudo firewall-cmd --list-services
 
 在腾讯云 DNS 控制台添加：
 
-| 类型 | 主机记录 | 记录值 | TTL |
-|------|----------|--------|-----|
-| A | linkstash | `<服务器公网 IP>` | 600 |
+| 类型 | 主机记录      | 记录值          | TTL |
+|----|-----------|--------------|-----|
+| A  | linkstash | `<服务器公网 IP>` | 600 |
 
 ## 六、验证部署
 
@@ -376,6 +382,7 @@ curl -I https://linkstash.sapaude.tech
 ```
 
 浏览器访问 `https://linkstash.sapaude.tech` 确认：
+
 - ✅ HTTPS 证书有效（🔒）
 - ✅ 登录页正常显示
 - ✅ 登录后首页卡片列表渲染
@@ -411,9 +418,8 @@ echo '0 3 * * * cp /opt/linkstash/data/linkstash.db /opt/linkstash/data/linkstas
 # 1. 备份
 sudo -u linkstash cp /opt/linkstash/data/linkstash.db /opt/linkstash/data/linkstash.db.bak
 
-# 2. 下载最新版本（自动获取）
-VERSION=$(curl -fsSL https://api.github.com/repos/lupguo/linkstash/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
-echo "Updating to $VERSION"
+# 2. 下载新版本
+VERSION="v0.2.0"
 sudo curl -fsSL "https://github.com/lupguo/linkstash/releases/download/${VERSION}/linkstash-server-linux-amd64" \
   -o /opt/linkstash/bin/linkstash-server
 sudo chmod +x /opt/linkstash/bin/linkstash-server
@@ -427,13 +433,13 @@ curl -s http://127.0.0.1:8085/health
 
 ### 常见问题
 
-| 问题 | 排查方法 |
-|------|----------|
-| 服务启动失败 | `journalctl -u linkstash -n 50` 查看错误 |
-| 端口未监听 | `ss -tlnp \| grep 8085` |
-| Caddy 证书失败 | 确认域名解析正确 + 80/443 端口开放 |
-| 502 Bad Gateway | 确认 LinkStash 服务正在运行 |
-| URL 分析失败 | 检查 Chromium 安装 + LLM API Key 配置 |
-| 搜索无结果 | 检查 `data/linkstash.bleve/` 索引目录是否存在 |
-| 日志写入失败 | 检查 systemd `ReadWritePaths` 是否包含 logs 目录 |
-| 数据库锁定 | 确认只有一个进程访问 SQLite 文件 |
+| 问题              | 排查方法                                     |
+|-----------------|------------------------------------------|
+| 服务启动失败          | `journalctl -u linkstash -n 50` 查看错误     |
+| 端口未监听           | `ss -tlnp \| grep 8085`                  |
+| Caddy 证书失败      | 确认域名解析正确 + 80/443 端口开放                   |
+| 502 Bad Gateway | 确认 LinkStash 服务正在运行                      |
+| URL 分析失败        | 检查 Chromium 安装 + LLM API Key 配置          |
+| 搜索无结果           | 检查 `data/linkstash.bleve/` 索引目录是否存在      |
+| 日志写入失败          | 检查 systemd `ReadWritePaths` 是否包含 logs 目录 |
+| 数据库锁定           | 确认只有一个进程访问 SQLite 文件                     |
