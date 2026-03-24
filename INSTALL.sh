@@ -4,7 +4,7 @@ set -euo pipefail
 # LinkStash Server Installer (Full Deployment)
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/lupguo/linkstash/main/scripts/deploy.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/lupguo/linkstash/main/INSTALL.sh | sudo bash
 #   curl -fsSL ... | sudo bash -s -- --version v0.2.1
 #
 # Installs LinkStash to /opt/linkstash with systemd service.
