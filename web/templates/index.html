@@ -1,5 +1,5 @@
 {{define "content"}}
-<div x-data="urlListPage()" x-init="initScroll()" @keyup.escape.window="if (isSearch || searchQuery) clearSearch()">
+<div>
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
         <div>
@@ -15,119 +15,117 @@
         </a>
     </div>
 
-    <!-- Search & Filters — merged glass panel -->
+    <!-- Search & Filters — HTMX-driven -->
     <div class="glass-panel p-3 rounded-lg mb-4 space-y-2">
-        <form @submit.prevent="doSearch()" class="flex flex-col gap-2">
+        <form id="search-form"
+              hx-get="/"
+              hx-target="#search-results"
+              hx-swap="innerHTML"
+              hx-push-url="true"
+              class="flex flex-col gap-2">
             <div class="flex gap-2">
-                <input type="text" x-model="searchQuery"
+                <input type="text" name="q" value="{{.Query}}"
                        placeholder="search bookmarks..."
                        class="terminal-input flex-1 px-3 py-2 rounded text-sm">
                 <button type="submit" class="terminal-btn px-4 py-2 rounded text-sm whitespace-nowrap">
                     &gt; grep
                 </button>
-                <button type="button" @click="clearSearch()" x-show="searchQuery || isSearch"
-                        class="terminal-btn terminal-btn-danger px-3 py-2 rounded text-sm whitespace-nowrap">
+                <a href="/" class="terminal-btn terminal-btn-danger px-3 py-2 rounded text-sm whitespace-nowrap"
+                   {{if not .IsSearch}}style="display:none"{{end}}>
                     x
-                </button>
+                </a>
             </div>
-            <!-- Search Type Buttons -->
+            <!-- Search Type — radio buttons styled as toggle buttons -->
             <div class="flex items-center gap-2">
                 <span class="text-terminal-gray text-xs">mode:</span>
-                <button type="button" @click="searchType = 'keyword'"
-                        class="px-3 py-1 rounded text-xs border transition-all"
-                        :class="searchType === 'keyword' ? 'border-terminal-green bg-terminal-green/10 text-terminal-green' : 'border-terminal-border text-terminal-gray hover:text-terminal-green'">
+                <label class="px-3 py-1 rounded text-xs border transition-all cursor-pointer has-[:checked]:border-terminal-green has-[:checked]:bg-terminal-green/10 has-[:checked]:text-terminal-green border-terminal-border text-terminal-gray hover:text-terminal-green">
+                    <input type="radio" name="search_type" value="keyword" class="hidden"
+                           {{if eq .SearchType "keyword"}}checked{{end}}>
                     keyword
-                </button>
-                <button type="button" @click="searchType = 'semantic'"
-                        class="px-3 py-1 rounded text-xs border transition-all"
-                        :class="searchType === 'semantic' ? 'border-terminal-green bg-terminal-green/10 text-terminal-green' : 'border-terminal-border text-terminal-gray hover:text-terminal-green'">
+                </label>
+                <label class="px-3 py-1 rounded text-xs border transition-all cursor-pointer has-[:checked]:border-terminal-green has-[:checked]:bg-terminal-green/10 has-[:checked]:text-terminal-green border-terminal-border text-terminal-gray hover:text-terminal-green">
+                    <input type="radio" name="search_type" value="semantic" class="hidden"
+                           {{if eq .SearchType "semantic"}}checked{{end}}>
                     semantic
-                </button>
-                <button type="button" @click="searchType = 'hybrid'"
-                        class="px-3 py-1 rounded text-xs border transition-all"
-                        :class="searchType === 'hybrid' ? 'border-terminal-green bg-terminal-green/10 text-terminal-green' : 'border-terminal-border text-terminal-gray hover:text-terminal-green'">
+                </label>
+                <label class="px-3 py-1 rounded text-xs border transition-all cursor-pointer has-[:checked]:border-terminal-green has-[:checked]:bg-terminal-green/10 has-[:checked]:text-terminal-green border-terminal-border text-terminal-gray hover:text-terminal-green">
+                    <input type="radio" name="search_type" value="hybrid" class="hidden"
+                           {{if eq .SearchType "hybrid"}}checked{{end}}>
                     hybrid
-                </button>
+                </label>
             </div>
+
+            <!-- Filters -->
+            <div class="flex flex-wrap gap-3 items-center text-sm pt-2 border-t border-terminal-border/50">
+                <div class="flex items-center gap-2">
+                    <span class="text-terminal-gray text-xs">category:</span>
+                    <select name="category" class="terminal-input px-2 py-1 rounded text-xs"
+                            hx-trigger="change" hx-include="closest form">
+                        <option value="">all</option>
+                        {{range .Categories}}
+                        <option value="{{.}}" {{if eq . $.FilterCategory}}selected{{end}}>{{.}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-terminal-gray text-xs">sort:</span>
+                    <select name="sort" class="terminal-input px-2 py-1 rounded text-xs"
+                            hx-trigger="change" hx-include="closest form">
+                        <option value="weight" {{if eq .FilterSort "weight"}}selected{{end}}>weight</option>
+                        <option value="time" {{if eq .FilterSort "time"}}selected{{end}}>time</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-terminal-gray text-xs">size:</span>
+                    <select name="size" class="terminal-input px-2 py-1 rounded text-xs"
+                            hx-trigger="change" hx-include="closest form">
+                        <option value="20" {{if eq .Size 20}}selected{{end}}>20</option>
+                        <option value="50" {{if eq .Size 50}}selected{{end}}>50</option>
+                        <option value="100" {{if eq .Size 100}}selected{{end}}>100</option>
+                    </select>
+                </div>
+                <label class="flex items-center gap-1 cursor-pointer">
+                    <input type="checkbox" name="is_shorturl" value="1"
+                           {{if .IsShortURL}}checked{{end}}
+                           class="accent-green-500"
+                           hx-trigger="change" hx-include="closest form">
+                    <span class="text-terminal-gray text-xs">short only</span>
+                </label>
+                <div class="flex items-center gap-2" id="min-score-filter"
+                     {{if not .IsSearch}}style="display:none"{{end}}>
+                    <span class="text-terminal-gray text-xs">score:</span>
+                    <select name="min_score" class="terminal-input px-2 py-1 rounded text-xs"
+                            hx-trigger="change" hx-include="closest form">
+                        <option value="0">all</option>
+                        <option value="0.2">≥ 0.2</option>
+                        <option value="0.4">≥ 0.4</option>
+                        <option value="0.6" selected>≥ 0.6</option>
+                        <option value="0.8">≥ 0.8</option>
+                        <option value="1.0">= 1.0</option>
+                    </select>
+                </div>
+            </div>
+
+            <input type="hidden" name="page" value="1" />
         </form>
+    </div>
 
-        <!-- Filters -->
-        <div class="flex flex-wrap gap-3 items-center text-sm pt-2 border-t border-terminal-border/50">
-            <div class="flex items-center gap-2">
-                <span class="text-terminal-gray text-xs">category:</span>
-                <select x-model="filters.category" @change="applyFilters()"
-                        class="terminal-input px-2 py-1 rounded text-xs">
-                    <option value="">all</option>
-                    {{range .Categories}}
-                    <option value="{{.}}">{{.}}</option>
-                    {{end}}
-                </select>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="text-terminal-gray text-xs">sort:</span>
-                <select x-model="filters.sort" @change="applyFilters()"
-                        class="terminal-input px-2 py-1 rounded text-xs">
-                    <option value="weight">weight</option>
-                    <option value="time">time</option>
-                </select>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="text-terminal-gray text-xs">size:</span>
-                <select x-model="filters.size" @change="applyFilters()"
-                        class="terminal-input px-2 py-1 rounded text-xs">
-                    <option value="20">20</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                </select>
-            </div>
-            <label class="flex items-center gap-1 cursor-pointer">
-                <input type="checkbox" x-model="filters.isShortURL" @change="applyFilters()"
-                       class="accent-green-500">
-                <span class="text-terminal-gray text-xs">short only</span>
-            </label>
-            <div class="flex items-center gap-2" x-show="isSearch" x-cloak>
-                <span class="text-terminal-gray text-xs">score:</span>
-                <select x-model="filters.minScore" @change="applyFilters()"
-                        class="terminal-input px-2 py-1 rounded text-xs">
-                    <option value="0">all</option>
-                    <option value="0.2">≥ 0.2</option>
-                    <option value="0.4">≥ 0.4</option>
-                    <option value="0.6">≥ 0.6</option>
-                    <option value="0.8">≥ 0.8</option>
-                    <option value="1.0">= 1.0</option>
-                </select>
-            </div>
+    <!-- Search Results (HTMX swap target) -->
+    <div id="search-results">
+        <div id="url-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 items-start">
+            {{range .URLs}}
+            {{template "url_card" .}}
+            {{end}}
         </div>
-    </div>
 
-    <!-- URL List (Grid) -->
-    <div id="url-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 items-start">
-        {{range .URLs}}
-        {{template "url_card" .}}
+        {{if not .URLs}}
+        <div class="terminal-card p-8 rounded-lg text-center">
+            <p class="text-terminal-gray">// no urls found</p>
+            <p class="text-terminal-gray text-xs mt-2">try adding a url or adjusting filters</p>
+        </div>
         {{end}}
-    </div>
 
-    {{if not .URLs}}
-    <div class="terminal-card p-8 rounded-lg text-center">
-        <p class="text-terminal-gray">// no urls found</p>
-        <p class="text-terminal-gray text-xs mt-2">try adding a url or adjusting filters</p>
-    </div>
-    {{end}}
-
-    <!-- Sentinel: IntersectionObserver target -->
-    <div x-ref="sentinel" x-show="hasMore" class="h-4"></div>
-
-    <!-- Loading indicator -->
-    <div x-show="isLoading" class="text-center py-4">
-        <span class="text-terminal-gray text-sm">loading...</span>
-    </div>
-
-    <!-- End of list -->
-    <div x-show="!hasMore && !isLoading" x-cloak class="text-center py-4">
-        <span class="text-terminal-gray text-xs">// end of list</span>
+        {{template "load_more_sentinel" .}}
     </div>
 </div>
-
-<!-- Page Data (JSON) — consumed by urlListPage() -->
-<script id="page-data" type="application/json">{{json .PageData}}</script>
 {{end}}
