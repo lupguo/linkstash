@@ -58,8 +58,11 @@ func ProvideBrowserService(cfg *config.Config) *browser.BrowserService {
 	return browser.NewBrowserService(cfg.Browser, cfg.Proxy.HTTPProxy)
 }
 
-func ProvideKeywordSearch(database *gorm.DB) *search.KeywordSearch {
-	return search.NewKeywordSearch(database)
+func ProvideKeywordSearch(cfg *config.Config, database *gorm.DB) search.KeywordSearcher {
+	if cfg.Database.IsMySQL() {
+		return search.NewLikeKeywordSearch(database)
+	}
+	return search.NewFTS5KeywordSearch(database)
 }
 
 func ProvideVectorSearch(embeddingRepo repos.EmbeddingRepo) *search.VectorSearch {

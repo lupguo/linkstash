@@ -36,7 +36,12 @@ func InitializeApp(confPath string) (*App, error) {
 	llmClient := llm.NewLLMClient(cfg.LLM.Chat, cfg.LLM.Embedding, httpClient)
 	browserService := browser.NewBrowserService(cfg.Browser, cfg.Proxy.HTTPProxy)
 
-	keywordSearch := search.NewKeywordSearch(database)
+	var keywordSearch search.KeywordSearcher
+	if cfg.Database.IsMySQL() {
+		keywordSearch = search.NewLikeKeywordSearch(database)
+	} else {
+		keywordSearch = search.NewFTS5KeywordSearch(database)
+	}
 
 	// Repos
 	urlRepo := db.NewURLRepoImpl(database)

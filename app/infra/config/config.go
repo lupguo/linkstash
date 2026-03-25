@@ -65,7 +65,64 @@ type AuthConfig struct {
 }
 
 type DatabaseConfig struct {
+	Driver string       `yaml:"driver"` // "sqlite" (default) or "mysql"
+	SQLite SQLiteConfig `yaml:"sqlite"`
+	MySQL  MySQLConfig  `yaml:"mysql"`
+
+	// Legacy field: kept for backward compatibility, maps to SQLite.Path
 	Path string `yaml:"path"`
+}
+
+// SQLiteConfig holds SQLite-specific settings.
+type SQLiteConfig struct {
+	Path string `yaml:"path"` // Database file path (default: "./data/linkstash.db")
+}
+
+// MySQLConfig holds MySQL-specific settings.
+type MySQLConfig struct {
+	User         string `yaml:"user"`
+	Password     string `yaml:"password"`
+	Host         string `yaml:"host"`
+	Port         int    `yaml:"port"`
+	DBName       string `yaml:"dbname"`
+	Charset      string `yaml:"charset"`       // default: utf8mb4
+	MaxOpenConns int    `yaml:"max_open_conns"` // default: 25
+	MaxIdleConns int    `yaml:"max_idle_conns"` // default: 5
+}
+
+// DSN returns the MySQL DSN string for GORM.
+func (m MySQLConfig) DSN() string {
+	charset := m.Charset
+	if charset == "" {
+		charset = "utf8mb4"
+	}
+	port := m.Port
+	if port == 0 {
+		port = 3306
+	}
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
+		m.User, m.Password, m.Host, port, m.DBName, charset)
+}
+
+// IsSQLite returns true if the configured driver is SQLite (or unset, the default).
+func (d DatabaseConfig) IsSQLite() bool {
+	return d.Driver == "" || d.Driver == "sqlite"
+}
+
+// IsMySQL returns true if the configured driver is MySQL.
+func (d DatabaseConfig) IsMySQL() bool {
+	return d.Driver == "mysql"
+}
+
+// GetSQLitePath returns the effective SQLite database file path.
+func (d DatabaseConfig) GetSQLitePath() string {
+	if d.SQLite.Path != "" {
+		return d.SQLite.Path
+	}
+	if d.Path != "" {
+		return d.Path
+	}
+	return "./data/linkstash.db"
 }
 
 // ShortTTLOption represents a single TTL choice for the UI dropdown.
@@ -124,8 +181,26 @@ func Load(path string) (*Config, error) {
 	if cfg.Auth.JWTExpireHours == 0 {
 		cfg.Auth.JWTExpireHours = 72
 	}
-	if cfg.Database.Path == "" {
-		cfg.Database.Path = "./data/linkstash.db"
+	// Database defaults
+	if cfg.Database.Driver == "" {
+		cfg.Database.Driver = "sqlite"
+	}
+	if cfg.Database.IsSQLite() && cfg.Database.GetSQLitePath() == "" {
+		cfg.Database.SQLite.Path = "./data/linkstash.db"
+	}
+	if cfg.Database.IsMySQL() {
+		if cfg.Database.MySQL.Charset == "" {
+			cfg.Database.MySQL.Charset = "utf8mb4"
+		}
+		if cfg.Database.MySQL.Port == 0 {
+			cfg.Database.MySQL.Port = 3306
+		}
+		if cfg.Database.MySQL.MaxOpenConns == 0 {
+			cfg.Database.MySQL.MaxOpenConns = 25
+		}
+		if cfg.Database.MySQL.MaxIdleConns == 0 {
+			cfg.Database.MySQL.MaxIdleConns = 5
+		}
 	}
 	if cfg.Log.Level == "" {
 		cfg.Log.Level = "info"

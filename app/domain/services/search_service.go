@@ -16,12 +16,12 @@ type SearchResult struct {
 
 // SearchService provides keyword, semantic, and hybrid search.
 type SearchService struct {
-	keywordSearch *search.KeywordSearch
+	keywordSearch search.KeywordSearcher
 	vectorSearch  *search.VectorSearch
 	llmClient     *llm.LLMClient
 }
 
-func NewSearchService(ks *search.KeywordSearch, vs *search.VectorSearch, llmClient *llm.LLMClient) *SearchService {
+func NewSearchService(ks search.KeywordSearcher, vs *search.VectorSearch, llmClient *llm.LLMClient) *SearchService {
 	return &SearchService{
 		keywordSearch: ks,
 		vectorSearch:  vs,

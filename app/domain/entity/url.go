@@ -8,7 +8,7 @@ import (
 
 type URL struct {
 	gorm.Model
-	Link           string     `gorm:"uniqueIndex;not null" json:"link"`
+	Link           string     `gorm:"size:768;uniqueIndex;not null" json:"link"`
 	Title          string     `json:"title"`
 	Keywords       string     `json:"keywords"`
 	Description    string     `json:"description"`
@@ -23,7 +23,7 @@ type URL struct {
 	ShortExpiresAt *time.Time `json:"short_expires_at,omitempty"`
 	Color          string     `gorm:"size:20;default:''" json:"color"`
 	Icon           string     `gorm:"size:10;default:''" json:"icon"`
-	Favicon        string     `gorm:"type:text;default:''" json:"favicon,omitempty"`
+	Favicon        string     `gorm:"type:mediumtext" json:"favicon,omitempty"`
 }
 
 func (URL) TableName() string { return "t_urls" }

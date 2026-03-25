@@ -9,8 +9,8 @@ type LLMLog struct {
 	Provider      string  `json:"provider"`
 	ModelName     string  `gorm:"column:model" json:"model"`
 	PromptKey     string  `json:"prompt_key"`
-	InputContent  string  `gorm:"type:text" json:"input_content"`
-	OutputContent string  `gorm:"type:text" json:"output_content"`
+	InputContent  string  `gorm:"type:mediumtext" json:"input_content"`
+	OutputContent string  `gorm:"type:mediumtext" json:"output_content"`
 	InputTokens   int     `json:"input_tokens"`
 	OutputTokens  int     `json:"output_tokens"`
 	TotalTokens   int     `json:"total_tokens"`

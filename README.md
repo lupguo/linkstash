@@ -215,6 +215,65 @@ GET    /urls/:id                   # 详情页
 GET    /cards                      # HTMX 分页片段（sentinel 触发）
 ```
 
+## 🗄️ 数据库配置
+
+LinkStash 支持 **SQLite**（默认）和 **MySQL** 两种数据库后端，通过 `database.driver` 字段切换。
+
+### SQLite（默认）
+
+零配置，适合开发和轻量部署：
+
+```yaml
+database:
+  driver: sqlite
+  sqlite:
+    path: "./data/linkstash.db"
+```
+
+### MySQL
+
+适合生产环境，利用已有的 MySQL 备份体系保障数据安全：
+
+```yaml
+database:
+  driver: mysql
+  mysql:
+    user: root
+    password: "${MYSQL_PASSWORD}"   # 支持环境变量引用
+    host: 127.0.0.1
+    port: 3306
+    dbname: linkstash_db
+    charset: utf8mb4
+    max_open_conns: 25
+    max_idle_conns: 5
+```
+
+> **注意**：SQLite 模式使用 FTS5 进行关键词检索；MySQL 模式使用 LIKE 查询（个人项目数据量下性能足够）。语义向量检索两种模式均为内存缓存 + BLOB 存储，行为一致。
+
+### 数据迁移（SQLite → MySQL）
+
+使用 CLI 工具将 SQLite 数据导出到 MySQL：
+
+```bash
+# 方式一：使用独立参数
+linkstash migrate \
+  --sqlite-path ./data/linkstash.db \
+  --mysql-user root --mysql-password Secret123. \
+  --mysql-host 127.0.0.1 --mysql-port 3308 --mysql-db linkstash_db
+
+# 方式二：使用 DSN 字符串
+linkstash migrate \
+  --sqlite-path ./data/linkstash.db \
+  --mysql-dsn "root:Secret123.@tcp(127.0.0.1:3308)/linkstash_db?charset=utf8mb4&parseTime=True&loc=Local"
+```
+
+迁移过程：
+1. 自动在 MySQL 中创建/验证表结构（AutoMigrate）
+2. 按表逐批导入：`t_urls` → `t_embeddings` → `t_visit_records` → `t_llm_logs`
+3. 完成后输出每张表的迁移记录数
+
+> ⚠️ 迁移前请确保 MySQL 目标数据库已创建（`CREATE DATABASE linkstash_db CHARACTER SET utf8mb4;`）。
+
 ## 🔨 Makefile
 
 ```bash

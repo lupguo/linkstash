@@ -6,33 +6,32 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/glebarez/sqlite"
 	"github.com/lupguo/linkstash/app/domain/entity"
 	"github.com/lupguo/linkstash/app/infra/config"
-	"github.com/glebarez/sqlite"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-// InitDB initializes the SQLite database with GORM, runs AutoMigrate, and creates FTS5 virtual table + triggers.
+// InitDB initializes the database with GORM based on the configured driver (sqlite or mysql).
+// It runs AutoMigrate and driver-specific setup (FTS5 for SQLite, index fixes for MySQL).
 func InitDB(cfg *config.DatabaseConfig) (*gorm.DB, error) {
-	// Ensure directory exists
-	dir := filepath.Dir(cfg.Path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, fmt.Errorf("create db directory: %w", err)
-	}
+	var database *gorm.DB
+	var err error
 
-	db, err := gorm.Open(sqlite.Open(cfg.Path), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
+	switch {
+	case cfg.IsMySQL():
+		database, err = initMySQL(cfg)
+	default:
+		database, err = initSQLite(cfg)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("open database: %w", err)
+		return nil, err
 	}
 
-	// Enable WAL mode for better concurrent reads
-	db.Exec("PRAGMA journal_mode=WAL")
-
-	// AutoMigrate all entities (ShortLink removed — fields merged into URL)
-	if err := db.AutoMigrate(
+	// AutoMigrate all entities (shared across both drivers)
+	if err := database.AutoMigrate(
 		&entity.URL{},
 		&entity.Embedding{},
 		&entity.VisitRecord{},
@@ -41,6 +40,71 @@ func InitDB(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}
 
+	// Driver-specific post-migration setup
+	if cfg.IsSQLite() {
+		if err := postMigrateSQLite(database); err != nil {
+			return nil, err
+		}
+	} else if cfg.IsMySQL() {
+		if err := postMigrateMySQL(database); err != nil {
+			return nil, err
+		}
+	}
+
+	slog.Info("database initialized successfully", "component", "db", "driver", cfg.Driver)
+	return database, nil
+}
+
+// initSQLite opens a SQLite database and enables WAL mode.
+func initSQLite(cfg *config.DatabaseConfig) (*gorm.DB, error) {
+	dbPath := cfg.GetSQLitePath()
+
+	// Ensure directory exists
+	dir := filepath.Dir(dbPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, fmt.Errorf("create db directory: %w", err)
+	}
+
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("open sqlite database: %w", err)
+	}
+
+	// Enable WAL mode for better concurrent reads
+	db.Exec("PRAGMA journal_mode=WAL")
+
+	slog.Info("sqlite database opened", "component", "db", "path", dbPath)
+	return db, nil
+}
+
+// initMySQL opens a MySQL database connection.
+func initMySQL(cfg *config.DatabaseConfig) (*gorm.DB, error) {
+	dsn := cfg.MySQL.DSN()
+
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("open mysql database: %w", err)
+	}
+
+	// Configure connection pool
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("get sql.DB: %w", err)
+	}
+	sqlDB.SetMaxOpenConns(cfg.MySQL.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.MySQL.MaxIdleConns)
+
+	slog.Info("mysql database opened", "component", "db", "host", cfg.MySQL.Host, "port", cfg.MySQL.Port, "dbname", cfg.MySQL.DBName)
+	return db, nil
+}
+
+// postMigrateSQLite runs SQLite-specific setup after AutoMigrate:
+// partial unique index, legacy migrations, and FTS5 virtual table.
+func postMigrateSQLite(db *gorm.DB) error {
 	// Fix: drop any old unique index on short_code (allows multiple empty/NULL values),
 	// then create a partial unique index that only enforces uniqueness for non-empty codes.
 	db.Exec("DROP INDEX IF EXISTS idx_t_urls_short_code")
@@ -49,7 +113,7 @@ func InitDB(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 
 	// One-time data migration: move t_short_links into t_urls
 	if err := migrateShortLinks(db); err != nil {
-		return nil, fmt.Errorf("migrate short links: %w", err)
+		return fmt.Errorf("migrate short links: %w", err)
 	}
 
 	// One-time data migration: convert legacy hex color values to theme keys
@@ -57,15 +121,26 @@ func InitDB(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 
 	// Create FTS5 virtual table (rebuilt to include short_code)
 	if err := createFTS5(db); err != nil {
-		return nil, fmt.Errorf("create FTS5: %w", err)
+		return fmt.Errorf("create FTS5: %w", err)
 	}
 
-	slog.Info("database initialized successfully", "component", "db")
-	return db, nil
+	return nil
+}
+
+// postMigrateMySQL runs MySQL-specific setup after AutoMigrate.
+func postMigrateMySQL(db *gorm.DB) error {
+	// For MySQL, we can't use partial unique index.
+	// Instead, ensure short_code allows empty string and use application-level uniqueness.
+	// GORM AutoMigrate already handles the basic index from struct tags.
+
+	// One-time data migration: convert legacy hex color values to theme keys
+	migrateColorThemes(db)
+
+	return nil
 }
 
 // migrateShortLinks migrates data from the old t_short_links table into t_urls,
-// then drops the old table. This is a one-time idempotent migration.
+// then drops the old table. This is a one-time idempotent migration (SQLite only).
 func migrateShortLinks(db *gorm.DB) error {
 	// Check if the old table exists
 	var count int64
@@ -145,10 +220,6 @@ func createFTS5(db *gorm.DB) error {
 	}
 
 	// Create FTS5 virtual table for full-text search on URLs
-	// Includes link, title, keywords, description, category, tags, short_code
-	// Uses default unicode61 tokenizer so URL special chars (. / : @ - _) act as
-	// separators, making domain/path segments individually searchable.
-	// e.g. "https://claude.ai/chat" → tokens: "https", "claude", "ai", "chat"
 	fts5DDL := `
 		CREATE VIRTUAL TABLE IF NOT EXISTS t_urls_fts USING fts5(
 			link, title, keywords, description, category, tags, short_code,
@@ -171,13 +242,11 @@ func createFTS5(db *gorm.DB) error {
 
 	// Triggers to keep FTS5 in sync with t_urls
 	triggers := []string{
-		// After INSERT: add to FTS
 		`CREATE TRIGGER IF NOT EXISTS t_urls_ai AFTER INSERT ON t_urls BEGIN
 			INSERT INTO t_urls_fts(rowid, link, title, keywords, description, category, tags, short_code)
 			VALUES (new.id, new.link, new.title, new.keywords, new.description, new.category, new.tags, new.short_code);
 		END;`,
 
-		// After UPDATE: remove old, add new
 		`CREATE TRIGGER IF NOT EXISTS t_urls_au AFTER UPDATE ON t_urls BEGIN
 			INSERT INTO t_urls_fts(t_urls_fts, rowid, link, title, keywords, description, category, tags, short_code)
 			VALUES('delete', old.id, old.link, old.title, old.keywords, old.description, old.category, old.tags, old.short_code);
@@ -185,7 +254,6 @@ func createFTS5(db *gorm.DB) error {
 			VALUES (new.id, new.link, new.title, new.keywords, new.description, new.category, new.tags, new.short_code);
 		END;`,
 
-		// After DELETE: remove from FTS
 		`CREATE TRIGGER IF NOT EXISTS t_urls_ad AFTER DELETE ON t_urls BEGIN
 			INSERT INTO t_urls_fts(t_urls_fts, rowid, link, title, keywords, description, category, tags, short_code)
 			VALUES('delete', old.id, old.link, old.title, old.keywords, old.description, old.category, old.tags, old.short_code);
@@ -202,19 +270,15 @@ func createFTS5(db *gorm.DB) error {
 }
 
 // migrateColorThemes converts legacy hex color values to preset theme keys.
-// Known mappings: #47ff5d→green, #ca4949→red. All other non-theme values are cleared.
-// This is idempotent — rows already using theme keys are unaffected.
 func migrateColorThemes(db *gorm.DB) {
 	validThemes := []string{"", "green", "red", "cyan", "yellow", "purple", "orange", "blue"}
 
-	// Build a NOT IN clause for valid themes
 	placeholders := make([]string, len(validThemes))
 	for i, t := range validThemes {
 		placeholders[i] = fmt.Sprintf("'%s'", t)
 	}
 	notIn := "(" + joinStrings(placeholders) + ")"
 
-	// Check if any rows need migration
 	var count int64
 	db.Raw("SELECT COUNT(*) FROM t_urls WHERE color NOT IN " + notIn + " AND deleted_at IS NULL").Scan(&count)
 	if count == 0 {
@@ -224,12 +288,10 @@ func migrateColorThemes(db *gorm.DB) {
 	slog.Info("migrating color values to theme keys", "component", "db", "count", count)
 	db.Exec("UPDATE t_urls SET color = 'green' WHERE color = '#47ff5d'")
 	db.Exec("UPDATE t_urls SET color = 'red' WHERE color = '#ca4949'")
-	// Clear any remaining non-theme color values
 	db.Exec("UPDATE t_urls SET color = '' WHERE color NOT IN " + notIn)
 	slog.Info("color theme migration complete", "component", "db")
 }
 
-// joinStrings joins string slice with commas.
 func joinStrings(s []string) string {
 	result := ""
 	for i, v := range s {
