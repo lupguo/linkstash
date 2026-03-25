@@ -68,12 +68,11 @@ func InitializeApp(confPath string) (*App, error) {
 
 	// Handlers
 	authCfg := &cfg.Auth
-	shortCfg := &cfg.Short
 	authHandler := handler.NewAuthHandler(authCfg)
 	urlHandler := handler.NewURLHandler(urlUsecase)
 	searchHandler := handler.NewSearchHandler(searchUsecase)
 	shortURLHandler := handler.NewShortURLHandler(urlUsecase)
-	webHandler := handler.NewWebHandler(urlUsecase, searchUsecase, authCfg, shortCfg, cfg.Categories, "web", AppVersion)
+	webHandler := handler.NewWebHandler("web", AppVersion)
 
 	app := &App{
 		Config:          cfg,

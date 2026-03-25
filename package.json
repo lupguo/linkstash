@@ -1,0 +1,29 @@
+{
+  "name": "linkstash",
+  "version": "1.0.0",
+  "description": "LinkStash 是一款面向个人的 URL 资源管理工具，支持 URL 收集、LLM 智能分析、关键词/语义混合检索、短链生成，通过 Web 界面、CLI 工具和 PopClip 插件三种方式交互。",
+  "main": "tailwind.config.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lupguo/linkstash.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/lupguo/linkstash/issues"
+  },
+  "homepage": "https://github.com/lupguo/linkstash#readme",
+  "dependencies": {
+    "@preact/signals": "^2.8.2",
+    "preact": "^10.29.0",
+    "preact-router": "^4.1.2"
+  }
+}

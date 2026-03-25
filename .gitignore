@@ -19,6 +19,9 @@ web/static/js/
 # Frontend tools (downloaded binaries)
 tools/
 
+# Node modules
+node_modules/
+
 # IDE
 .idea/
 .vscode/
@@ -50,3 +53,5 @@ docs/superpowers/
 /tmp/
 *.log
 *.pid
+
+server

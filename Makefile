@@ -15,7 +15,7 @@ TAILWIND := tools/tailwindcss
 ESBUILD := tools/esbuild
 CSS_SRC := web/src/css/app.css
 CSS_OUT := web/static/css/app.css
-JS_SRC := web/src/js/app.js
+JS_SRC := web/src/js/app.jsx
 JS_OUT := web/static/js/app.js
 
 .PHONY: all build build-server build-cli clean run stop restart test smoke-test wire tidy lint fmt help frontend frontend-css frontend-js dev-frontend
@@ -47,12 +47,12 @@ frontend-css:
 frontend-js:
 	@echo ">>> Building JS..."
 	@mkdir -p web/static/js
-	$(ESBUILD) $(JS_SRC) --bundle --minify --outfile=$(JS_OUT)
+	$(ESBUILD) $(JS_SRC) --bundle --minify --outfile=$(JS_OUT) --jsx=automatic --jsx-import-source=preact
 
 dev-frontend:
 	@echo ">>> Watching frontend files..."
 	$(TAILWIND) -i $(CSS_SRC) -o $(CSS_OUT) --watch &
-	$(ESBUILD) $(JS_SRC) --bundle --outfile=$(JS_OUT) --watch
+	$(ESBUILD) $(JS_SRC) --bundle --outfile=$(JS_OUT) --watch --jsx=automatic --jsx-import-source=preact
 
 ## Run server (foreground)
 run: build-server

@@ -42,24 +42,28 @@ app/middleware/               → JWT auth middleware
 
 **Request flow**: `chi router → handler → usecase → repo/service → infra`
 
-## Web UI (Go templates + HTMX + Alpine.js)
+## Web UI (Preact SPA)
 
 ```
-web/templates/layout.html    → Base layout (nav, footer, script/css includes)
-web/templates/{page}.html    → Page templates (index, detail, login) — {{define "content"}}
-web/components/*.html        → Shared partials (url_card, card_fragment, load_more_sentinel)
-web/src/js/app.js            → esbuild entry: htmx + Alpine components
-web/src/js/alpine/           → Alpine components (url-card, detail-page, login-form)
-web/src/css/app.css          → Tailwind entry
-web/static/                  → Built assets (served at /static/)
+web/templates/spa.html           → Single HTML shell (serves all routes)
+web/src/js/app.jsx               → Preact entry point (Router + Layout)
+web/src/js/api.js                → JSON API client (fetch wrapper with JWT auth)
+web/src/js/store.js              → Shared state (@preact/signals)
+web/src/js/utils.js              → Utilities (getCookie, copyToClipboard)
+web/src/js/pages/                → Page components (LoginPage, IndexPage, DetailPage)
+web/src/js/components/           → Shared components (Layout, URLCard, SearchBar, ScoreFilter, ColorPicker)
+web/src/css/app.css              → Tailwind entry
+web/static/                      → Built assets (served at /static/)
 ```
 
-**Template loading**: `NewWebHandler` parses each page template with layout + all components via `filepath.Glob`. Components define `{{define "block_name"}}` blocks usable from any page. Access via `h.tmplMap["index"]` → `t.ExecuteTemplate(w, "block_name", data)`.
+**SPA architecture**: Go server serves `spa.html` for all non-API, non-static routes via `r.NotFound()`. Preact handles client-side routing with `preact-router`. All data flows through JSON APIs (`/api/*`). Auth uses JWT stored in `linkstash_token` cookie.
 
-**HTMX patterns** (index page):
-- Infinite scroll: sentinel with `hx-trigger="revealed"` + `hx-swap="outerHTML"`, server returns OOB cards (`hx-swap-oob="beforeend:#url-list"`) + new sentinel
-- Search/filters: form `hx-get="/"` + `hx-push-url="true"`, server detects `HX-Request` header → returns `search_fragment` (inline, no OOB)
-- Filter auto-submit: `onchange="this.form.requestSubmit()"` triggers HTMX form submission
+**Key frontend patterns**:
+- Infinite scroll: IntersectionObserver on sentinel div, increments page state
+- Search: fetches `/api/search` with query params, renders client-side
+- ESC key: clears search query, resets filters, returns to default URL list
+- Score filter: client-side min_score slider for hybrid search results
+- State: `@preact/signals` for auth, `useState`/`useEffect` for component state
 
 ## API Routes
 
@@ -68,12 +72,13 @@ web/static/                  → Built assets (served at /static/)
 - `GET /api/search?q=...&type=keyword|semantic|hybrid` — search
 - `POST /api/short-links` — create short URL
 - `GET /s/{code}` — short URL redirect
-- `GET /cards?page=N&size=N&sort=...` — HTMX scroll fragment
+- `GET /* (non-API)` — SPA catch-all (serves spa.html)
 
 ## Key Conventions
 
-- Go: standard `slog` for logging, `chi` for routing, `gorm` for ORM (SQLite)
-- Frontend: esbuild bundles `web/src/js/app.js` → `web/static/js/app.js`; Tailwind builds `web/src/css/app.css` → `web/static/css/app.css`
+- Go: standard `slog` for logging, `chi` for routing, `gorm` for ORM (SQLite/MySQL)
+- Frontend: Preact SPA with preact-router and @preact/signals; esbuild bundles `web/src/js/app.jsx` → `web/static/js/app.js` (with `--jsx=automatic --jsx-import-source=preact`); Tailwind builds `web/src/css/app.css` → `web/static/css/app.css`
+- npm: `package.json` manages preact deps; `node_modules/` is gitignored; run `npm install` after clone
 - Config: YAML in `conf/`, env vars interpolated with `${VAR}` syntax
 - DI: Google Wire — edit `app/di/wire.go`, run `make wire` to regenerate
 - Search: Bleve full-text index + OpenRouter embedding for semantic search

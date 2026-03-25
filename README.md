@@ -10,14 +10,14 @@ LinkStash 是一款面向个人的 URL 资源管理工具，支持 URL 收集、
 | **LLM 智能分析** | 添加 URL 后异步抓取页面（Rod headless Chrome），LLM 自动提取标题、关键词、摘要、分类、标签 |
 | **混合检索** | FTS5 关键词检索 + 512 维向量语义检索 + Bleve 全文索引 |
 | **短链服务** | SHA256+Base62 短码生成，302 重定向，支持 TTL 过期（410 Gone） |
-| **Terminal 风格 Web UI** | 暗黑极客主题，HTMX 无刷新交互（服务端驱动 sentinel 无限滚动 + 搜索），移动端适配 |
+| **Terminal 风格 Web UI** | 暗黑极客主题，Preact SPA 单页应用，客户端路由 + JSON API 数据驱动，IntersectionObserver 无限滚动，移动端适配 |
 | **CLI 工具** | `linkstash add / list / search / short / info` 全命令行操作 |
 | **PopClip 插件** | macOS 上选中 URL 一键保存 |
 
 ## 🏗️ 技术栈
 
 ```
-Go · chi · GORM · SQLite (modernc) · Google Wire · HTMX · Alpine.js · Tailwind CSS · esbuild · Rod · JWT · cobra
+Go · chi · GORM · SQLite (modernc) · Google Wire · Preact · preact-router · @preact/signals · Tailwind CSS · esbuild · Rod · JWT · cobra
 ```
 
 ## 📦 安装
@@ -53,7 +53,8 @@ curl -fsSL https://raw.githubusercontent.com/lupguo/linkstash/main/scripts/insta
 ```bash
 git clone https://github.com/lupguo/linkstash.git
 cd linkstash
-make build    # 前端 (CSS+JS) + server + CLI → bin/
+npm install     # 安装 Preact 前端依赖
+make build      # 前端 (CSS+JS) + server + CLI → bin/
 ```
 
 ### GitHub Release
@@ -205,15 +206,16 @@ DELETE /api/short-links/:id        # 删除
 GET    /s/:code                    # 302 重定向（无需鉴权）
 ```
 
-### Web 页面
+### Web 页面（SPA）
 
 ```
-GET    /                           # URL 列表（HTMX 无限滚动 + 搜索）
-GET    /login                      # 登录页
-GET    /urls/new                   # 新建 URL
-GET    /urls/:id                   # 详情页
-GET    /cards                      # HTMX 分页片段（sentinel 触发）
+GET    /                           # Preact SPA 入口（客户端路由）
+GET    /login                      # 登录页（SPA 路由）
+GET    /urls/new                   # 新建 URL（SPA 路由）
+GET    /urls/:id                   # 详情页（SPA 路由）
 ```
+
+> 所有非 API、非静态资源的路径均返回 spa.html，由 Preact 客户端路由处理。
 
 ## 🗄️ 数据库配置
 
@@ -314,10 +316,15 @@ linkstash/
 │       ├── config/                 # YAML 配置加载
 │       └── logger/                 # slog 日志
 ├── web/
-│   ├── templates/                  # Go HTML 模板（layout + 页面）
-│   ├── components/                 # 共享模板组件（url_card, sentinel, fragment）
-│   ├── src/js/                     # Alpine.js 组件 + esbuild 入口
-│   └── src/css/                    # Tailwind CSS 入口
+│   ├── templates/spa.html             # SPA 入口 HTML
+│   ├── src/js/                        # Preact SPA 源码
+│   │   ├── app.jsx                    # 入口（Router + Layout）
+│   │   ├── api.js                     # JSON API 客户端
+│   │   ├── store.js                   # Signals 状态管理
+│   │   ├── utils.js                   # 工具函数
+│   │   ├── pages/                     # 页面组件（Login, Index, Detail）
+│   │   └── components/                # 共享组件（Layout, URLCard, SearchBar 等）
+│   └── src/css/                       # Tailwind CSS 入口
 ├── INSTALL.sh                      # 一键服务部署脚本
 ├── scripts/
 │   ├── install.sh                  # 轻量二进制安装

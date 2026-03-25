@@ -94,14 +94,8 @@ func ProvideShortConfig(cfg *config.Config) *config.ShortConfig {
 	return &cfg.Short
 }
 
-func ProvideWebHandler(
-	urlUsecase *application.URLUsecase,
-	searchUsecase *application.SearchUsecase,
-	authCfg *config.AuthConfig,
-	shortCfg *config.ShortConfig,
-	cfg *config.Config,
-) *handler.WebHandler {
-	return handler.NewWebHandler(urlUsecase, searchUsecase, authCfg, shortCfg, cfg.Categories, "web", AppVersion)
+func ProvideWebHandler(cfg *config.Config) *handler.WebHandler {
+	return handler.NewWebHandler("web", AppVersion)
 }
 
 // --- Provider sets ---

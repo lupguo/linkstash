@@ -66,13 +66,6 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	// Web pages
-	r.Get("/", app.WebHandler.HandleIndex)
-	r.Get("/login", app.WebHandler.HandleLogin)
-	r.Get("/cards", app.WebHandler.HandleIndexCards)
-	r.Get("/urls/new", app.WebHandler.HandleNew)
-	r.Get("/urls/{id}", app.WebHandler.HandleDetail)
-
 	// Static files with cache headers
 	fileServer := http.FileServer(http.Dir("web/static"))
 	r.Handle("/static/*", staticCacheMiddleware(http.StripPrefix("/static/", fileServer)))
@@ -96,6 +89,9 @@ func main() {
 		r.Put("/short-links/{id}", app.ShortURLHandler.HandleUpdate)
 		r.Delete("/short-links/{id}", app.ShortURLHandler.HandleDelete)
 	})
+
+	// SPA catch-all: serve spa.html for all non-API, non-static routes
+	r.NotFound(app.WebHandler.HandleSPA)
 
 	addr := app.Config.Server.Addr()
 	slog.Info("LinkStash starting", "addr", addr, "version", Version)
