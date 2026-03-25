@@ -46,7 +46,13 @@ export function IndexPage() {
           size,
           min_score: searchType === 'hybrid' ? minScore : undefined,
         });
-        const items = result.results || [];
+        // Search returns { data: [{ url: {...}, score: N }], total, type }
+        const rawItems = result.data || [];
+        // Flatten: merge url fields + score at top level
+        const items = rawItems.map(item => ({
+          ...item.url,
+          score: item.score,
+        }));
         setUrls(prev => append ? [...prev, ...items] : items);
         setHasMore(items.length === size);
       } else {
@@ -57,13 +63,14 @@ export function IndexPage() {
           category: category || undefined,
           is_shorturl: isShortURL ? 1 : undefined,
         });
-        const items = result.urls || [];
+        // List returns { data: [...], total, page, size }
+        const items = result.data || [];
         setUrls(prev => append ? [...prev, ...items] : items);
         setHasMore(items.length === size);
 
         // Extract categories from results for filter dropdown
         if (!append && items.length > 0) {
-          const cats = [...new Set(items.map(u => u.Category).filter(Boolean))];
+          const cats = [...new Set(items.map(u => u.category).filter(Boolean))];
           setCategories(prev => {
             const merged = [...new Set([...prev, ...cats])];
             return merged.sort();
@@ -149,6 +156,15 @@ export function IndexPage() {
 
   return (
     <div>
+      {/* Terminal prompt header */}
+      <div class="text-terminal-green font-mono text-sm mb-4 opacity-70">
+        <span class="text-terminal-cyan">user@linkstash</span>
+        <span class="text-terminal-gray">:</span>
+        <span class="text-terminal-green">~</span>
+        <span class="text-terminal-gray">$</span>
+        {' '}ls -la /urls {query && <span class="text-terminal-cyan">| grep "{query}"</span>}
+      </div>
+
       <SearchBar
         query={query}
         searchType={searchType}
@@ -169,11 +185,13 @@ export function IndexPage() {
       </div>
 
       {loading && (
-        <div class="text-center text-terminal-gray py-8">Loading...</div>
+        <div class="text-center text-terminal-gray py-8 font-mono">
+          <span class="text-terminal-green">{'>'}</span> Loading<span class="cursor-blink">_</span>
+        </div>
       )}
 
       {!loading && urls.length === 0 && (
-        <div class="text-center text-terminal-gray py-16">
+        <div class="text-center text-terminal-gray py-16 font-mono">
           <p class="text-lg mb-2">No URLs found</p>
           <p class="text-sm">Try adjusting your search or <a href="/urls/new" class="text-terminal-green hover:underline">add a new URL</a></p>
         </div>

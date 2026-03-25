@@ -3,13 +3,6 @@ import { route } from 'preact-router';
 import { urlApi } from '../api.js';
 import { copyToClipboard } from '../utils.js';
 
-const STATUS_BADGES = {
-  pending: 'text-yellow-400 border-yellow-400',
-  analyzing: 'text-blue-400 border-blue-400',
-  ready: 'text-green-400 border-green-400',
-  failed: 'text-red-400 border-red-400',
-};
-
 export function URLCard({ url, onDelete }) {
   async function handleVisit(e) {
     e.preventDefault();
@@ -18,12 +11,12 @@ export function URLCard({ url, onDelete }) {
     } catch (err) {
       // ignore visit tracking errors
     }
-    window.open(url.Link, '_blank');
+    window.open(url.link, '_blank');
   }
 
   function handleCopy(e) {
     e.stopPropagation();
-    copyToClipboard(url.Link);
+    copyToClipboard(url.link);
   }
 
   function handleEdit(e) {
@@ -42,68 +35,72 @@ export function URLCard({ url, onDelete }) {
     }
   }
 
-  const statusClass = STATUS_BADGES[url.Status] || '';
-  const weight = (url.ManualWeight || 0) + (url.AutoWeight || 0);
+  const weight = (url.manual_weight || 0) + (url.auto_weight || 0);
   const date = url.CreatedAt ? new Date(url.CreatedAt).toLocaleDateString() : '';
-  const faviconSrc = url.Favicon || (url.Link ? `https://www.google.com/s2/favicons?domain=${new URL(url.Link).hostname}&sz=16` : '');
+  const colorClass = url.color ? `card-theme-${url.color}` : '';
+  const faviconSrc = url.favicon || (url.link ? `https://www.google.com/s2/favicons?domain=${new URL(url.link).hostname}&sz=16` : '');
 
   return (
     <div class="relative card-wrapper">
-      <div class="terminal-card rounded-lg p-3 group card-default">
+      <div class={`terminal-card rounded-lg p-3 group card-default ${colorClass}`}>
         {/* Title row */}
         <div class="flex items-start gap-2 mb-1">
           {faviconSrc && (
             <img src={faviconSrc} alt="" class="w-4 h-4 mt-0.5 flex-shrink-0" loading="lazy" />
           )}
           <a
-            href={url.Link}
+            href={url.link}
             onClick={handleVisit}
             class="text-terminal-green text-sm font-semibold truncate flex-1 hover:text-white no-underline cursor-pointer"
-            title={url.Title || url.Link}
+            title={url.title || url.link}
           >
-            {url.Title || url.Link}
+            {url.title || url.link}
           </a>
-          {url.Score != null && (
+          {url.score != null && (
             <span class="text-xs text-terminal-cyan bg-terminal-dark px-1.5 py-0.5 rounded flex-shrink-0">
-              {url.Score.toFixed(2)}
+              {url.score.toFixed(2)}
             </span>
           )}
         </div>
 
         {/* Link */}
         <div class="text-terminal-gray text-xs truncate mb-1">
-          {url.Link}
+          {url.link}
         </div>
 
         {/* Description */}
-        {url.Description && (
-          <p class="text-gray-400 text-xs line-clamp-2 mb-1">
-            {url.Description}
+        {url.description && (
+          <p class="card-desc text-gray-400 text-xs mb-1">
+            {url.description}
           </p>
         )}
 
         {/* Keywords (hover) */}
-        {url.Keywords && (
-          <div class="hidden group-hover:block text-xs text-terminal-cyan mb-1 truncate">
-            {url.Keywords}
+        {url.keywords && (
+          <div class="card-hover-extra text-xs text-terminal-cyan mb-1 truncate">
+            {url.keywords}
           </div>
         )}
 
         {/* Category + Tags + Status */}
         <div class="flex items-center gap-2 flex-wrap text-xs mb-1">
-          {url.Category && (
+          {url.category && (
             <span class="text-terminal-cyan bg-terminal-dark px-1.5 py-0.5 rounded">
-              {url.Category}
+              {url.category}
             </span>
           )}
-          {url.Tags && url.Tags.split(',').slice(0, 3).map(tag => (
-            <span key={tag.trim()} class="text-terminal-gray bg-terminal-dark px-1 py-0.5 rounded">
-              {tag.trim()}
-            </span>
-          ))}
-          {url.Status && (
-            <span class={`text-xs border px-1 py-0.5 rounded ${statusClass}`}>
-              {url.Status}
+          {url.tags && (
+            <div class="tags-row flex items-center gap-1">
+              {url.tags.split(',').slice(0, 3).map(tag => (
+                <span key={tag.trim()} class="text-terminal-gray bg-terminal-dark px-1 py-0.5 rounded">
+                  {tag.trim()}
+                </span>
+              ))}
+            </div>
+          )}
+          {url.status && (
+            <span class={`badge-${url.status} text-xs border px-1 py-0.5 rounded`}>
+              {url.status}
             </span>
           )}
         </div>
@@ -111,8 +108,8 @@ export function URLCard({ url, onDelete }) {
         {/* Bottom row: short link, weight, date */}
         <div class="flex items-center justify-between text-xs text-terminal-gray">
           <div class="flex items-center gap-2">
-            {url.ShortCode && (
-              <span class="text-terminal-cyan">/s/{url.ShortCode}</span>
+            {url.short_code && (
+              <span class="text-terminal-cyan">/s/{url.short_code}</span>
             )}
             <span>w:{weight}</span>
           </div>
@@ -120,7 +117,7 @@ export function URLCard({ url, onDelete }) {
         </div>
 
         {/* Action buttons (hover) */}
-        <div class="hidden group-hover:flex absolute top-2 right-2 gap-1">
+        <div class="card-hover-actions absolute top-2 right-2 gap-1">
           <button
             onClick={handleEdit}
             class="text-xs bg-terminal-dark text-terminal-green border border-terminal-border rounded px-1.5 py-0.5 hover:bg-surface-hi"

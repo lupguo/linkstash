@@ -17,18 +17,18 @@ export function Layout({ children }) {
         <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <a href="/" class="text-lg font-bold tracking-wider flex items-center gap-1 no-underline text-terminal-green">
             <span class="text-terminal-green">{'>'}</span>
-            <span class="animate-pulse">_</span>
+            <span class="cursor-blink">_</span>
             <span>|LinkStash</span>
           </a>
-          <div class="flex items-center gap-4 text-sm">
+          <div class="flex items-center gap-2 text-sm">
             {isAuthenticated.value ? (
               <>
-                <a href="/" class="hover:text-white no-underline text-terminal-green">Home</a>
-                <a href="/urls/new" class="hover:text-white no-underline text-terminal-green">+ New URL</a>
-                <a href="#" onClick={handleLogout} class="hover:text-terminal-red no-underline text-terminal-green">Logout</a>
+                <a href="/" class="terminal-btn text-xs px-3 py-1 no-underline">Home</a>
+                <a href="/urls/new" class="terminal-btn text-xs px-3 py-1 no-underline">+ New</a>
+                <a href="#" onClick={handleLogout} class="terminal-btn text-xs px-3 py-1 no-underline border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-black">Logout</a>
               </>
             ) : (
-              <a href="/login" class="hover:text-white no-underline text-terminal-green">Login</a>
+              <a href="/login" class="terminal-btn text-xs px-3 py-1 no-underline">Login</a>
             )}
           </div>
         </div>

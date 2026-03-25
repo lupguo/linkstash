@@ -31,7 +31,7 @@ export function SearchBar({ query, searchType, category, sort, size, isShortURL,
   }
 
   return (
-    <div class="terminal-card rounded-lg p-4">
+    <div class="glass-panel rounded-lg p-4">
       {/* Search input + button */}
       <form onSubmit={handleSubmit} class="flex gap-2 mb-3">
         <input
@@ -53,13 +53,14 @@ export function SearchBar({ query, searchType, category, sort, size, isShortURL,
       <div class="flex items-center gap-4 mb-3 text-sm">
         <span class="text-terminal-gray">Type:</span>
         {['keyword', 'semantic', 'hybrid'].map(type => (
-          <label key={type} class="flex items-center gap-1 cursor-pointer text-terminal-green">
+          <label key={type} class="flex items-center gap-1.5 cursor-pointer text-terminal-green hover:text-white transition-colors">
             <input
               type="radio"
               name="searchType"
               value={type}
               checked={searchType === type}
               onChange={() => onFilterChange({ searchType: type })}
+              class="accent-green-500"
             />
             {type}
           </label>
@@ -103,11 +104,12 @@ export function SearchBar({ query, searchType, category, sort, size, isShortURL,
         </select>
 
         {/* Short URL filter */}
-        <label class="flex items-center gap-1 cursor-pointer text-terminal-gray">
+        <label class="flex items-center gap-1.5 cursor-pointer text-terminal-gray hover:text-terminal-green transition-colors">
           <input
             type="checkbox"
             checked={isShortURL}
             onChange={(e) => onFilterChange({ isShortURL: e.target.checked })}
+            class="accent-green-500"
           />
           Short URLs only
         </label>

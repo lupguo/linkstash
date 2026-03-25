@@ -5,13 +5,6 @@ import { isAuthenticated } from '../store.js';
 import { urlApi, shortApi } from '../api.js';
 import { ColorPicker } from '../components/ColorPicker.jsx';
 
-const STATUS_COLORS = {
-  pending: 'text-yellow-400 border-yellow-400',
-  analyzing: 'text-blue-400 border-blue-400',
-  ready: 'text-green-400 border-green-400',
-  failed: 'text-red-400 border-red-400',
-};
-
 const EMPTY_FORM = {
   link: '',
   title: '',
@@ -68,21 +61,21 @@ export function DetailPage({ id }) {
       const data = await urlApi.get(id);
       setUrlData(data);
       setForm({
-        link: data.Link || '',
-        title: data.Title || '',
-        description: data.Description || '',
-        keywords: data.Keywords || '',
-        category: data.Category || '',
-        tags: data.Tags || '',
-        manual_weight: data.ManualWeight || 0,
-        visit_count: data.VisitCount || 0,
-        short_code: data.ShortCode || '',
-        ttl: data.TTL || 0,
-        color: data.Color || '',
-        icon: data.Icon || '',
-        status: data.Status || '',
+        link: data.link || '',
+        title: data.title || '',
+        description: data.description || '',
+        keywords: data.keywords || '',
+        category: data.category || '',
+        tags: data.tags || '',
+        manual_weight: data.manual_weight || 0,
+        visit_count: data.visit_count || 0,
+        short_code: data.short_code || '',
+        ttl: 0,
+        color: data.color || '',
+        icon: data.icon || '',
+        status: data.status || '',
       });
-      setEnableShortCode(!!data.ShortCode);
+      setEnableShortCode(!!data.short_code);
     } catch (err) {
       showMessage('Failed to load URL: ' + err.message, 'error');
     }
@@ -155,7 +148,7 @@ export function DetailPage({ id }) {
         });
 
         // Create short link if newly enabled and has code
-        if (enableShortCode && form.short_code && (!urlData || !urlData.ShortCode)) {
+        if (enableShortCode && form.short_code && (!urlData || !urlData.short_code)) {
           try {
             await shortApi.create({
               long_url: form.link,
@@ -203,10 +196,19 @@ export function DetailPage({ id }) {
 
   if (!isAuthenticated.value) return null;
 
-  const statusClass = urlData ? STATUS_COLORS[urlData.Status] || '' : '';
+  const statusBadge = urlData ? `badge-${urlData.status}` : '';
 
   return (
     <div class="max-w-3xl mx-auto">
+      {/* Terminal prompt header */}
+      <div class="text-terminal-green font-mono text-sm mb-4 opacity-70">
+        <span class="text-terminal-cyan">user@linkstash</span>
+        <span class="text-terminal-gray">:</span>
+        <span class="text-terminal-green">~</span>
+        <span class="text-terminal-gray">$</span>
+        {' '}{isNew ? 'touch /urls/new' : `cat /urls/${id}`}
+      </div>
+
       {/* Back link */}
       <a href="/" class="text-terminal-gray hover:text-terminal-green text-sm mb-4 inline-block no-underline">
         ← cd /urls
@@ -219,9 +221,9 @@ export function DetailPage({ id }) {
           </h1>
           {!isNew && (
             <div class="flex items-center gap-2">
-              {urlData && urlData.Status && (
-                <span class={`text-xs border px-2 py-0.5 rounded ${statusClass}`}>
-                  {urlData.Status}
+              {urlData && urlData.status && (
+                <span class={`${statusBadge} text-xs border px-2 py-0.5 rounded`}>
+                  {urlData.status}
                 </span>
               )}
               {!editing && (
@@ -232,7 +234,7 @@ export function DetailPage({ id }) {
               <button onClick={handleReanalyze} class="terminal-btn text-xs px-3 py-1" disabled={reanalyzing}>
                 {reanalyzing ? 'Analyzing...' : 'Reanalyze'}
               </button>
-              <button onClick={handleDelete} class="terminal-btn text-xs px-3 py-1 border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-black">
+              <button onClick={handleDelete} class="terminal-btn-danger text-xs px-3 py-1">
                 Delete
               </button>
             </div>
@@ -417,55 +419,55 @@ export function DetailPage({ id }) {
             <div class="space-y-4">
               {/* Title + Link */}
               <div>
-                <h2 class="text-lg text-terminal-green mb-1">{urlData.Title || 'Untitled'}</h2>
+                <h2 class="text-lg text-terminal-green mb-1">{urlData.title || 'Untitled'}</h2>
                 <a
-                  href={urlData.Link}
+                  href={urlData.link}
                   target="_blank"
                   rel="noopener noreferrer"
                   class="text-terminal-cyan text-sm hover:underline break-all"
                 >
-                  {urlData.Link}
+                  {urlData.link}
                 </a>
               </div>
 
               {/* Description */}
-              {urlData.Description && (
+              {urlData.description && (
                 <div>
                   <label class="text-terminal-gray text-xs">Description</label>
-                  <p class="text-sm text-gray-300 mt-1">{urlData.Description}</p>
+                  <p class="text-sm text-gray-300 mt-1">{urlData.description}</p>
                 </div>
               )}
 
               {/* Keywords */}
-              {urlData.Keywords && (
+              {urlData.keywords && (
                 <div>
                   <label class="text-terminal-gray text-xs">Keywords</label>
-                  <p class="text-sm text-gray-300 mt-1">{urlData.Keywords}</p>
+                  <p class="text-sm text-gray-300 mt-1">{urlData.keywords}</p>
                 </div>
               )}
 
               {/* Category + Tags */}
               <div class="flex gap-4">
-                {urlData.Category && (
+                {urlData.category && (
                   <div>
                     <label class="text-terminal-gray text-xs">Category</label>
-                    <p class="text-sm text-terminal-cyan mt-1">{urlData.Category}</p>
+                    <p class="text-sm text-terminal-cyan mt-1">{urlData.category}</p>
                   </div>
                 )}
-                {urlData.Tags && (
+                {urlData.tags && (
                   <div>
                     <label class="text-terminal-gray text-xs">Tags</label>
-                    <p class="text-sm text-gray-300 mt-1">{urlData.Tags}</p>
+                    <p class="text-sm text-gray-300 mt-1">{urlData.tags}</p>
                   </div>
                 )}
               </div>
 
               {/* Short Link */}
-              {urlData.ShortCode && (
+              {urlData.short_code && (
                 <div>
                   <label class="text-terminal-gray text-xs">Short Link</label>
                   <p class="text-sm text-terminal-cyan mt-1">
-                    <a href={`/s/${urlData.ShortCode}`} class="hover:underline">/s/{urlData.ShortCode}</a>
+                    <a href={`/s/${urlData.short_code}`} class="hover:underline">/s/{urlData.short_code}</a>
                   </p>
                 </div>
               )}
@@ -474,19 +476,19 @@ export function DetailPage({ id }) {
               <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t border-terminal-border text-xs">
                 <div>
                   <span class="text-terminal-gray">Manual Weight</span>
-                  <p class="text-terminal-green">{urlData.ManualWeight || 0}</p>
+                  <p class="text-terminal-green">{urlData.manual_weight || 0}</p>
                 </div>
                 <div>
                   <span class="text-terminal-gray">Auto Weight</span>
-                  <p class="text-terminal-green">{urlData.AutoWeight || 0}</p>
+                  <p class="text-terminal-green">{urlData.auto_weight || 0}</p>
                 </div>
                 <div>
                   <span class="text-terminal-gray">Visits</span>
-                  <p class="text-terminal-green">{urlData.VisitCount || 0}</p>
+                  <p class="text-terminal-green">{urlData.visit_count || 0}</p>
                 </div>
                 <div>
                   <span class="text-terminal-gray">Color</span>
-                  <p class="text-terminal-green">{urlData.Color || 'default'}</p>
+                  <p class="text-terminal-green">{urlData.color || 'default'}</p>
                 </div>
                 <div>
                   <span class="text-terminal-gray">Created</span>
@@ -498,11 +500,11 @@ export function DetailPage({ id }) {
                 </div>
                 <div>
                   <span class="text-terminal-gray">Last Visit</span>
-                  <p class="text-terminal-green">{urlData.LastVisit ? new Date(urlData.LastVisit).toLocaleDateString() : '-'}</p>
+                  <p class="text-terminal-green">{urlData.last_visit_at ? new Date(urlData.last_visit_at).toLocaleDateString() : '-'}</p>
                 </div>
                 <div>
                   <span class="text-terminal-gray">Status</span>
-                  <p class={statusClass}>{urlData.Status || '-'}</p>
+                  <p class={`badge-${urlData.status}`}>{urlData.status || '-'}</p>
                 </div>
               </div>
             </div>

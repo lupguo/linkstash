@@ -35,8 +35,29 @@ export function LoginPage() {
   return (
     <div class="flex items-center justify-center min-h-[60vh]">
       <div class="terminal-card rounded-lg p-8 w-full max-w-md">
+        {/* ASCII art header */}
+        <pre class="text-terminal-green text-xs mb-4 opacity-60 leading-tight">{
+`╔══════════════════════════════════╗
+║  ██╗     ███████╗               ║
+║  ██║     ██╔════╝               ║
+║  ██║     ███████╗  LinkStash    ║
+║  ██║     ╚════██║  v1.0.0       ║
+║  ███████╗███████║               ║
+║  ╚══════╝╚══════╝               ║
+╚══════════════════════════════════╝`
+        }</pre>
+
+        {/* System info */}
+        <div class="text-terminal-gray text-xs mb-4 font-mono space-y-0.5">
+          <div><span class="text-terminal-cyan">system</span>  : linkstash-terminal</div>
+          <div><span class="text-terminal-cyan">status</span>  : awaiting authentication</div>
+          <div><span class="text-terminal-cyan">session</span> : locked</div>
+        </div>
+
+        <div class="border-t border-terminal-border mb-4"></div>
+
         <h1 class="text-terminal-green text-xl mb-6 font-mono">
-          {'>'} AUTHENTICATION REQUIRED
+          {'>'} AUTHENTICATION REQUIRED<span class="cursor-blink">_</span>
         </h1>
         <form onSubmit={handleSubmit}>
           <div class="mb-4">
@@ -52,7 +73,9 @@ export function LoginPage() {
             />
           </div>
           {error && (
-            <div class="text-terminal-red text-sm mb-4">{error}</div>
+            <div class="text-terminal-red text-sm mb-4">
+              <span class="text-terminal-red">ERR!</span> {error}
+            </div>
           )}
           <button
             type="submit"
