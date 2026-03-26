@@ -90,11 +90,7 @@ func ProvideAuthConfig(cfg *config.Config) *config.AuthConfig {
 	return &cfg.Auth
 }
 
-func ProvideShortConfig(cfg *config.Config) *config.ShortConfig {
-	return &cfg.Short
-}
-
-func ProvideWebHandler(cfg *config.Config) *handler.WebHandler {
+func ProvideWebHandler() *handler.WebHandler {
 	return handler.NewWebHandler("web", AppVersion)
 }
 
@@ -137,7 +133,6 @@ var HandlerSet = wire.NewSet(
 	handler.NewShortURLHandler,
 	ProvideWebHandler,
 	ProvideAuthConfig,
-	ProvideShortConfig,
 )
 
 // InitializeApp creates a fully wired App instance.

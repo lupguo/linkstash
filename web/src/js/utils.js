@@ -26,36 +26,3 @@ export function copyToClipboard(text) {
     document.body.removeChild(ta);
   });
 }
-
-/**
- * Make an authenticated API request.
- * @param {string} url
- * @param {string} method
- * @param {object} [body]
- * @returns {Promise<Response>}
- */
-export function apiRequest(url, method, body) {
-  const token = getCookie('linkstash_token');
-  const headers = { 'Authorization': 'Bearer ' + token };
-  const opts = { method, headers };
-  if (body !== undefined) {
-    headers['Content-Type'] = 'application/json';
-    opts.body = JSON.stringify(body);
-  }
-  return fetch(url, opts);
-}
-
-/**
- * Read page data from embedded JSON script tag.
- * @returns {object}
- */
-export function getPageData() {
-  const el = document.getElementById('page-data');
-  if (!el) return {};
-  try {
-    return JSON.parse(el.textContent);
-  } catch (e) {
-    console.error('Failed to parse page data:', e);
-    return {};
-  }
-}
