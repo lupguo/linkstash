@@ -3,6 +3,14 @@ import { route } from 'preact-router';
 import { urlApi } from '../api.js';
 import { copyToClipboard } from '../utils.js';
 
+function getDomain(link) {
+  try {
+    return new URL(link).hostname;
+  } catch {
+    return link;
+  }
+}
+
 export function URLCard({ url, onDelete }) {
   async function handleVisit(e) {
     e.preventDefault();
@@ -38,16 +46,16 @@ export function URLCard({ url, onDelete }) {
   const weight = (url.manual_weight || 0) + (url.auto_weight || 0);
   const date = url.CreatedAt ? new Date(url.CreatedAt).toLocaleDateString() : '';
   const colorClass = url.color ? `card-theme-${url.color}` : '';
-  const faviconSrc = url.favicon || (url.link ? `https://www.google.com/s2/favicons?domain=${new URL(url.link).hostname}&sz=16` : '');
+  const domain = getDomain(url.link);
+  const faviconSrc = url.favicon || `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
 
   return (
     <div class="relative card-wrapper">
       <div class={`terminal-card rounded-lg p-3 group card-default ${colorClass}`}>
         {/* Title row */}
         <div class="flex items-start gap-2 mb-1">
-          {faviconSrc && (
-            <img src={faviconSrc} alt="" class="w-4 h-4 mt-0.5 flex-shrink-0" loading="lazy" />
-          )}
+          <img src={faviconSrc} alt="" class="w-4 h-4 mt-0.5 flex-shrink-0 rounded-sm" loading="lazy"
+            onError={(e) => { e.target.style.display = 'none'; }} />
           <a
             href={url.link}
             onClick={handleVisit}
@@ -63,9 +71,9 @@ export function URLCard({ url, onDelete }) {
           )}
         </div>
 
-        {/* Link */}
+        {/* Domain */}
         <div class="text-terminal-gray text-xs truncate mb-1">
-          {url.link}
+          {domain}
         </div>
 
         {/* Description */}
@@ -75,10 +83,10 @@ export function URLCard({ url, onDelete }) {
           </p>
         )}
 
-        {/* Keywords (hover) */}
+        {/* Keywords (hover only) */}
         {url.keywords && (
-          <div class="card-hover-extra text-xs text-terminal-cyan mb-1 truncate">
-            {url.keywords}
+          <div class="card-hover-extra text-xs text-terminal-cyan mb-1">
+            <span class="text-terminal-gray">kw:</span> {url.keywords}
           </div>
         )}
 
@@ -116,7 +124,7 @@ export function URLCard({ url, onDelete }) {
           <span>{date}</span>
         </div>
 
-        {/* Action buttons (hover) */}
+        {/* Action buttons (hover only) */}
         <div class="card-hover-actions absolute top-2 right-2 gap-1">
           <button
             onClick={handleEdit}
