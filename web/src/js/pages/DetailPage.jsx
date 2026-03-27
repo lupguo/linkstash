@@ -2,8 +2,9 @@ import { h } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 import { route } from 'preact-router';
 import { isAuthenticated } from '../store.js';
-import { urlApi, shortApi } from '../api.js';
+import { urlApi, shortApi, configApi } from '../api.js';
 import { ColorPicker } from '../components/ColorPicker.jsx';
+import { ConfirmModal } from '../components/ConfirmModal.jsx';
 
 const EMPTY_FORM = {
   link: '',
@@ -31,6 +32,8 @@ export function DetailPage({ id }) {
   const [messageType, setMessageType] = useState('success');
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [enableShortCode, setEnableShortCode] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Auth guard
   useEffect(() => {
@@ -47,6 +50,15 @@ export function DetailPage({ id }) {
         setEditing(true);
       }
     }
+  }, []);
+
+  // Fetch categories from config API
+  useEffect(() => {
+    configApi.categories().then(data => {
+      setCategories(data.categories || []);
+    }).catch(err => {
+      console.error('Failed to load categories:', err);
+    });
   }, []);
 
   // Load URL data
@@ -172,7 +184,11 @@ export function DetailPage({ id }) {
   }
 
   async function handleDelete() {
-    if (!confirm('Are you sure you want to delete this URL?')) return;
+    setShowDeleteModal(true);
+  }
+
+  async function confirmDelete() {
+    setShowDeleteModal(false);
     try {
       await urlApi.delete(id);
       route('/');
@@ -216,16 +232,18 @@ export function DetailPage({ id }) {
 
       <div class="terminal-card rounded-lg p-6">
         <div class="flex items-center justify-between mb-6">
-          <h1 class="text-terminal-green text-xl font-mono">
-            {isNew ? '> NEW URL' : `> URL #${id}`}
-          </h1>
+          <div class="flex items-center gap-3">
+            <h1 class="text-terminal-green text-xl font-mono">
+              {isNew ? '> NEW URL' : `> URL #${id}`}
+            </h1>
+            {!isNew && urlData && urlData.status && (
+              <span class={`${statusBadge} text-xs border px-2 py-0.5 rounded`}>
+                {urlData.status}
+              </span>
+            )}
+          </div>
           {!isNew && (
             <div class="flex items-center gap-2">
-              {urlData && urlData.status && (
-                <span class={`${statusBadge} text-xs border px-2 py-0.5 rounded`}>
-                  {urlData.status}
-                </span>
-              )}
               {!editing && (
                 <button onClick={() => setEditing(true)} class="terminal-btn text-xs px-3 py-1">
                   Edit
@@ -234,7 +252,7 @@ export function DetailPage({ id }) {
               <button onClick={handleReanalyze} class="terminal-btn text-xs px-3 py-1" disabled={reanalyzing}>
                 {reanalyzing ? 'Analyzing...' : 'Reanalyze'}
               </button>
-              <button onClick={handleDelete} class="terminal-btn-danger text-xs px-3 py-1">
+              <button onClick={handleDelete} class="terminal-btn terminal-btn-danger text-xs px-3 py-1">
                 Delete
               </button>
             </div>
@@ -302,13 +320,19 @@ export function DetailPage({ id }) {
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-terminal-gray text-sm mb-1">Category</label>
-                <input
-                  type="text"
+                <select
                   class="terminal-input w-full"
                   value={form.category}
-                  onInput={(e) => updateField('category', e.target.value)}
-                  placeholder="Category"
-                />
+                  onChange={(e) => updateField('category', e.target.value)}
+                >
+                  <option value="">Select...</option>
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                  {form.category && !categories.includes(form.category) && (
+                    <option value={form.category}>{form.category}</option>
+                  )}
+                </select>
               </div>
               <div>
                 <label class="block text-terminal-gray text-sm mb-1">Tags</label>
@@ -376,6 +400,7 @@ export function DetailPage({ id }) {
               {enableShortCode && (
                 <div class="grid grid-cols-2 gap-4 mt-2">
                   <div>
+                    <label class="block text-terminal-gray text-xs mb-1">Short Code</label>
                     <input
                       type="text"
                       class="terminal-input w-full"
@@ -385,13 +410,19 @@ export function DetailPage({ id }) {
                     />
                   </div>
                   <div>
-                    <input
-                      type="number"
+                    <label class="block text-terminal-gray text-xs mb-1">有效期</label>
+                    <select
                       class="terminal-input w-full"
                       value={form.ttl}
-                      onInput={(e) => updateField('ttl', e.target.value)}
-                      placeholder="TTL (seconds, 0=forever)"
-                    />
+                      onChange={(e) => updateField('ttl', Number(e.target.value))}
+                    >
+                      <option value={0}>永久</option>
+                      <option value={86400}>1 天</option>
+                      <option value={604800}>7 天</option>
+                      <option value={2592000}>30 天</option>
+                      <option value={7776000}>90 天</option>
+                      <option value={31536000}>1 年</option>
+                    </select>
                   </div>
                 </div>
               )}
@@ -399,13 +430,13 @@ export function DetailPage({ id }) {
 
             {/* Actions */}
             <div class="flex items-center gap-3 pt-4 border-t border-terminal-border">
-              <button type="submit" class="terminal-btn" disabled={saving}>
+              <button type="submit" class="terminal-btn text-xs px-4 py-1.5" disabled={saving}>
                 {saving ? '> SAVING...' : isNew ? '> CREATE' : '> SAVE'}
               </button>
               {!isNew && (
                 <button
                   type="button"
-                  class="terminal-btn border-terminal-gray text-terminal-gray"
+                  class="terminal-btn terminal-btn-danger text-xs px-4 py-1.5"
                   onClick={() => { setEditing(false); loadUrl(); }}
                 >
                   Cancel
@@ -511,6 +542,16 @@ export function DetailPage({ id }) {
           )
         )}
       </div>
+      {/* Delete confirmation modal */}
+      <ConfirmModal
+        open={showDeleteModal}
+        title="确认删除"
+        message="确定要删除这个 URL 吗？此操作无法撤销。"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </div>
   );
 }
