@@ -5,7 +5,8 @@ set -euo pipefail
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/lupguo/linkstash/main/INSTALL.sh | sudo bash
-#   curl -fsSL ... | sudo bash -s -- --version v0.2.1
+#   curl -fsSL ... | sudo bash -s -- --version v0.3.2
+#   curl -fsSL ... | sudo bash -s -- --proxy http://127.0.0.1:7890
 #
 # Installs LinkStash to /opt/linkstash with systemd service.
 # After install, edit /opt/linkstash/.env and run: systemctl start linkstash
@@ -15,6 +16,7 @@ INSTALL_DIR="/opt/linkstash"
 SERVICE_USER="linkstash"
 SERVICE_PORT="8085"
 RELEASE_VERSION=""
+PROXY=""
 
 # --- Helpers ---
 
@@ -27,9 +29,18 @@ error() { echo -e "\033[31m==>\033[0m $1" >&2; exit 1; }
 while [[ $# -gt 0 ]]; do
     case $1 in
         --version|-v) RELEASE_VERSION="$2"; shift 2 ;;
+        --proxy|-p)   PROXY="$2"; shift 2 ;;
         *)            error "Unknown option: $1" ;;
     esac
 done
+
+# Apply proxy if specified (or inherit from environment)
+if [[ -n "$PROXY" ]]; then
+    export http_proxy="$PROXY" https_proxy="$PROXY" HTTP_PROXY="$PROXY" HTTPS_PROXY="$PROXY"
+    info "  Using proxy: $PROXY"
+elif [[ -n "${http_proxy:-}${https_proxy:-}${HTTP_PROXY:-}${HTTPS_PROXY:-}" ]]; then
+    info "  Using proxy from environment: ${https_proxy:-${HTTPS_PROXY:-${http_proxy:-$HTTP_PROXY}}}"
+fi
 
 # ============================================================
 # [1/6] Environment detection
