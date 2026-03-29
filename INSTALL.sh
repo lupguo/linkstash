@@ -61,7 +61,7 @@ info "  Arch: $ARCH"
 # Get version
 if [[ -z "$RELEASE_VERSION" ]]; then
     info "  Querying latest version..."
-    RELEASE_VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+    RELEASE_VERSION=$(curl --http1.1 -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
         | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
     if [[ -z "$RELEASE_VERSION" ]]; then
         error "Could not determine latest version. Use --version to specify."
@@ -107,16 +107,16 @@ BASE_URL="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}"
 
 info "  Downloading linkstash-server..."
 rm -f "${INSTALL_DIR}/bin/linkstash-server"
-curl -fsSL "${BASE_URL}/linkstash-server-linux-${ARCH}" -o "${INSTALL_DIR}/bin/linkstash-server"
+curl --http1.1 -fsSL "${BASE_URL}/linkstash-server-linux-${ARCH}" -o "${INSTALL_DIR}/bin/linkstash-server"
 chmod +x "${INSTALL_DIR}/bin/linkstash-server"
 
 info "  Downloading linkstash CLI..."
 rm -f "${INSTALL_DIR}/bin/linkstash"
-curl -fsSL "${BASE_URL}/linkstash-linux-${ARCH}" -o "${INSTALL_DIR}/bin/linkstash"
+curl --http1.1 -fsSL "${BASE_URL}/linkstash-linux-${ARCH}" -o "${INSTALL_DIR}/bin/linkstash"
 chmod +x "${INSTALL_DIR}/bin/linkstash"
 
 info "  Downloading web resources..."
-curl -fsSL "${BASE_URL}/web.tar.gz" -o /tmp/linkstash-web.tar.gz
+curl --http1.1 -fsSL "${BASE_URL}/web.tar.gz" -o /tmp/linkstash-web.tar.gz
 tar -xzf /tmp/linkstash-web.tar.gz -C "${INSTALL_DIR}/web/"
 rm -f /tmp/linkstash-web.tar.gz
 
@@ -137,7 +137,7 @@ else
     # Download example config from repo as base template
     RAW_URL="https://raw.githubusercontent.com/${REPO}/${RELEASE_VERSION}/conf/app_example.yaml"
     info "  Downloading config template..."
-    if curl -fsSL "${RAW_URL}" -o "${INSTALL_DIR}/conf/app_prod.yaml"; then
+    if curl --http1.1 -fsSL "${RAW_URL}" -o "${INSTALL_DIR}/conf/app_prod.yaml"; then
         # Patch: bind to localhost only, use prod port, inject random secrets, set log level
         sed -i \
             -e "s|host: 0.0.0.0|host: 127.0.0.1|" \
