@@ -4,15 +4,15 @@ LinkStash 是一款面向个人的 URL 资源管理工具，支持 URL 收集、
 
 ## ✨ 核心功能
 
-| 功能 | 说明 |
-|---|---|
-| **URL 管理** | 添加、编辑、删除、分页浏览，支持分类 / 标签 / 热度排序 |
-| **LLM 智能分析** | 添加 URL 后异步抓取页面（Rod headless Chrome），LLM 自动提取标题、关键词、摘要、分类、标签 |
-| **混合检索** | FTS5 关键词检索 + 512 维向量语义检索 + Bleve 全文索引 |
-| **短链服务** | SHA256+Base62 短码生成，302 重定向，支持 TTL 过期（410 Gone） |
+| 功能                     | 说明                                                                           |
+|------------------------|------------------------------------------------------------------------------|
+| **URL 管理**             | 添加、编辑、删除、分页浏览，支持分类 / 标签 / 热度排序                                               |
+| **LLM 智能分析**           | 添加 URL 后异步抓取页面（Rod headless Chrome），LLM 自动提取标题、关键词、摘要、分类、标签                  |
+| **混合检索**               | FTS5 关键词检索 + 512 维向量语义检索 + Bleve 全文索引                                        |
+| **短链服务**               | SHA256+Base62 短码生成，302 重定向，支持 TTL 过期（410 Gone）                               |
 | **Terminal 风格 Web UI** | 暗黑极客主题，Preact SPA 单页应用，客户端路由 + JSON API 数据驱动，IntersectionObserver 无限滚动，移动端适配 |
-| **CLI 工具** | `linkstash add / list / search / short / info` 全命令行操作 |
-| **PopClip 插件** | macOS 上选中 URL 一键保存 |
+| **CLI 工具**             | `linkstash add / list / search / short / info` 全命令行操作                        |
+| **PopClip 插件**         | macOS 上选中 URL 一键保存                                                           |
 
 ## 🏗️ 技术栈
 
@@ -270,6 +270,7 @@ linkstash migrate \
 ```
 
 迁移过程：
+
 1. 自动在 MySQL 中创建/验证表结构（AutoMigrate）
 2. 按表逐批导入：`t_urls` → `t_embeddings` → `t_visit_records` → `t_llm_logs`
 3. 完成后输出每张表的迁移记录数

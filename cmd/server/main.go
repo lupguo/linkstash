@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -64,6 +65,10 @@ func main() {
 	r.Get("/s/{code}", app.ShortURLHandler.HandleRedirect)
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"status":"ok"}`))
+	})
+	r.Get("/api/config/categories", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string][]string{"categories": app.Config.Categories})
 	})
 
 	// Static files with cache headers

@@ -2,7 +2,7 @@ import { h } from 'preact';
 import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
 import { route } from 'preact-router';
 import { isAuthenticated } from '../store.js';
-import { urlApi, searchApi } from '../api.js';
+import { urlApi, searchApi, configApi } from '../api.js';
 import { URLCard } from '../components/URLCard.jsx';
 import { SearchBar } from '../components/SearchBar.jsx';
 
@@ -30,6 +30,15 @@ export function IndexPage() {
     }
   }, []);
 
+  // Fetch categories from config API
+  useEffect(() => {
+    configApi.categories().then(data => {
+      setCategories(data.categories || []);
+    }).catch(err => {
+      console.error('Failed to load categories:', err);
+    });
+  }, []);
+
   // Fetch data
   const fetchData = useCallback(async (currentPage, append = false) => {
     if (loadingRef.current) return;
@@ -43,18 +52,34 @@ export function IndexPage() {
           q: query,
           type: searchType,
           page: currentPage,
-          size,
+          size: 100, // fetch more for client-side filtering
           min_score: searchType === 'hybrid' ? minScore : undefined,
         });
         // Search returns { data: [{ url: {...}, score: N }], total, type }
         const rawItems = result.data || [];
         // Flatten: merge url fields + score at top level
-        const items = rawItems.map(item => ({
+        let items = rawItems.map(item => ({
           ...item.url,
           score: item.score,
         }));
-        setUrls(prev => append ? [...prev, ...items] : items);
-        setHasMore(items.length === size);
+        // Client-side filters for search results
+        if (category) {
+          items = items.filter(u => u.category === category);
+        }
+        if (isShortURL) {
+          items = items.filter(u => u.short_code && u.short_code !== '');
+        }
+        // Client-side sorting
+        if (sort === 'weight') {
+          items.sort((a, b) => ((b.auto_weight || 0) + (b.manual_weight || 0)) - ((a.auto_weight || 0) + (a.manual_weight || 0)));
+        } else if (sort === 'latest') {
+          items.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
+        }
+        // Paginate client-side
+        const start = (currentPage - 1) * size;
+        const paged = items.slice(start, start + size);
+        setUrls(prev => append ? [...prev, ...paged] : paged);
+        setHasMore(paged.length === size);
       } else {
         result = await urlApi.list({
           page: currentPage,
@@ -67,15 +92,6 @@ export function IndexPage() {
         const items = result.data || [];
         setUrls(prev => append ? [...prev, ...items] : items);
         setHasMore(items.length === size);
-
-        // Extract categories from results for filter dropdown
-        if (!append && items.length > 0) {
-          const cats = [...new Set(items.map(u => u.category).filter(Boolean))];
-          setCategories(prev => {
-            const merged = [...new Set([...prev, ...cats])];
-            return merged.sort();
-          });
-        }
       }
     } catch (err) {
       console.error('Fetch error:', err);

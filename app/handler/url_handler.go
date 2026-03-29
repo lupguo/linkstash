@@ -115,8 +115,9 @@ func (h *URLHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 
 	category := q.Get("category")
 	tags := q.Get("tags")
+	isShortURL := q.Get("is_shorturl") == "1"
 
-	urls, total, err := h.usecase.ListURLs(page, size, sort, category, tags, false)
+	urls, total, err := h.usecase.ListURLs(page, size, sort, category, tags, isShortURL)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
