@@ -3,6 +3,8 @@
  */
 
 import { getCookie } from './utils.js';
+import { auth } from './store.js';
+import { route } from 'preact-router';
 
 /**
  * Base fetch wrapper for all API calls.
@@ -31,7 +33,10 @@ export async function api(path, options = {}) {
   const res = await fetch(path, { ...options, headers });
 
   if (res.status === 401) {
-    window.location.href = '/login';
+    // Clear invalid token to break login redirect loop
+    document.cookie = 'linkstash_token=;path=/;max-age=0';
+    auth.value = { token: null };
+    route('/login', true);
     throw new Error('Unauthorized — redirecting to login');
   }
 
@@ -41,6 +46,20 @@ export async function api(path, options = {}) {
 
   return res.json();
 }
+
+// ---------------------------------------------------------------------------
+// Config (public endpoints)
+// ---------------------------------------------------------------------------
+
+export const configApi = {
+  /**
+   * Get configured categories.
+   * @returns {Promise<{categories: string[]}>}
+   */
+  categories() {
+    return fetch('/api/config/categories').then(res => res.json());
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Auth
