@@ -6,6 +6,8 @@ type URLRepo interface {
 	Create(url *entity.URL) error
 	GetByID(id uint) (*entity.URL, error)
 	GetByLink(link string) (*entity.URL, error)
+	GetDeletedByLink(link string) (*entity.URL, error)
+	Restore(id uint) error
 	Update(url *entity.URL) error
 	Delete(id uint) error
 	List(page int, size int, sort string, category string, tags string, isShortURL bool) ([]*entity.URL, int64, error)

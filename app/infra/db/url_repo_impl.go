@@ -44,6 +44,20 @@ func (r *URLRepoImpl) GetByLink(link string) (*entity.URL, error) {
 	return &url, nil
 }
 
+// GetDeletedByLink retrieves a soft-deleted URL by its link value.
+func (r *URLRepoImpl) GetDeletedByLink(link string) (*entity.URL, error) {
+	var url entity.URL
+	if err := r.db.Unscoped().Where("link = ? AND deleted_at IS NOT NULL", link).First(&url).Error; err != nil {
+		return nil, err
+	}
+	return &url, nil
+}
+
+// Restore un-deletes a soft-deleted URL by clearing its deleted_at field.
+func (r *URLRepoImpl) Restore(id uint) error {
+	return r.db.Unscoped().Model(&entity.URL{}).Where("id = ?", id).Update("deleted_at", nil).Error
+}
+
 // Update saves all fields of the given URL record.
 func (r *URLRepoImpl) Update(url *entity.URL) error {
 	return r.db.Save(url).Error

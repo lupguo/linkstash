@@ -10,6 +10,7 @@ import (
 
 	"github.com/lupguo/linkstash/app/domain/entity"
 	"github.com/lupguo/linkstash/app/domain/repos"
+	"gorm.io/gorm"
 )
 
 const base62Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -25,9 +26,26 @@ func NewURLService(urlRepo repos.URLRepo) *URLService {
 }
 
 // AddURL creates a new URL entry with status "pending".
+// If a soft-deleted record with the same link exists, it restores and resets that record instead.
 func (s *URLService) AddURL(link string) (*entity.URL, error) {
 	if link == "" {
 		return nil, errors.New("link must not be empty")
+	}
+
+	// Check if a soft-deleted record exists for this link
+	deleted, err := s.urlRepo.GetDeletedByLink(link)
+	if err == nil && deleted != nil {
+		// Restore the soft-deleted record and reset its status
+		if err := s.urlRepo.Restore(deleted.ID); err != nil {
+			return nil, fmt.Errorf("restore soft-deleted URL: %w", err)
+		}
+		// Reset status to pending for re-analysis
+		deleted.Status = "pending"
+		deleted.DeletedAt = gorm.DeletedAt{}
+		if err := s.urlRepo.Update(deleted); err != nil {
+			return nil, fmt.Errorf("update restored URL: %w", err)
+		}
+		return deleted, nil
 	}
 
 	url := &entity.URL{
@@ -78,13 +96,24 @@ func (s *URLService) GenerateShortLink(longURL, customCode string, ttl *time.Dur
 	// Find or create the URL record
 	url, err := s.urlRepo.GetByLink(longURL)
 	if err != nil {
-		// Not found — create a new URL record
-		url = &entity.URL{
-			Link:   longURL,
-			Status: "pending",
-		}
-		if err := s.urlRepo.Create(url); err != nil {
-			return nil, fmt.Errorf("failed to create URL record: %w", err)
+		// Not found — check for soft-deleted record first
+		deleted, delErr := s.urlRepo.GetDeletedByLink(longURL)
+		if delErr == nil && deleted != nil {
+			if err := s.urlRepo.Restore(deleted.ID); err != nil {
+				return nil, fmt.Errorf("failed to restore URL record: %w", err)
+			}
+			deleted.Status = "pending"
+			deleted.DeletedAt = gorm.DeletedAt{}
+			url = deleted
+		} else {
+			// Create a new URL record
+			url = &entity.URL{
+				Link:   longURL,
+				Status: "pending",
+			}
+			if err := s.urlRepo.Create(url); err != nil {
+				return nil, fmt.Errorf("failed to create URL record: %w", err)
+			}
 		}
 	}
 
