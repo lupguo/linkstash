@@ -74,6 +74,11 @@ UPGRADE=false
 if [[ -f "${INSTALL_DIR}/bin/linkstash-server" ]]; then
     warn "  Existing installation detected. Upgrading to ${RELEASE_VERSION}."
     UPGRADE=true
+    # Stop service before overwriting binaries (avoids "Failure writing" errors)
+    if systemctl is-active --quiet linkstash 2>/dev/null; then
+        info "  Stopping linkstash service for upgrade..."
+        systemctl stop linkstash
+    fi
 fi
 
 # ============================================================
@@ -101,10 +106,12 @@ info "[3/6] Downloading LinkStash ${RELEASE_VERSION}..."
 BASE_URL="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}"
 
 info "  Downloading linkstash-server..."
+rm -f "${INSTALL_DIR}/bin/linkstash-server"
 curl -fsSL "${BASE_URL}/linkstash-server-linux-${ARCH}" -o "${INSTALL_DIR}/bin/linkstash-server"
 chmod +x "${INSTALL_DIR}/bin/linkstash-server"
 
 info "  Downloading linkstash CLI..."
+rm -f "${INSTALL_DIR}/bin/linkstash"
 curl -fsSL "${BASE_URL}/linkstash-linux-${ARCH}" -o "${INSTALL_DIR}/bin/linkstash"
 chmod +x "${INSTALL_DIR}/bin/linkstash"
 
@@ -266,6 +273,8 @@ echo "    3. curl -s http://127.0.0.1:${SERVICE_PORT}/health   # verify"
 echo ""
 if [[ "$UPGRADE" == "true" ]]; then
     echo "  Upgrade note: config and env files were preserved."
-    echo "  Run: systemctl restart linkstash"
+    echo "  Restarting service..."
+    systemctl restart linkstash
+    echo "  Service restarted. Run: systemctl status linkstash"
     echo ""
 fi
