@@ -59,15 +59,15 @@ export function URLCard({ url, onDelete }) {
 
   return (
     <div class="relative card-wrapper">
-      <div class={`terminal-card p-4 group card-default ${colorClass}`}>
+      <div class={`terminal-card p-3 group card-default ${colorClass}`}>
         {/* Title — Inter sans-serif, larger, medium weight */}
-        <div class="flex items-start gap-2.5 mb-1.5">
-          <img src={faviconSrc} alt="" class="w-[18px] h-[18px] mt-[2px] flex-shrink-0 rounded" loading="lazy"
+        <div class="flex items-start gap-2 mb-1">
+          <img src={faviconSrc} alt="" class="w-[16px] h-[16px] mt-[2px] flex-shrink-0 rounded" loading="lazy"
             onError={(e) => { e.target.style.display = 'none'; }} />
           <a
             href={url.link}
             onClick={handleVisit}
-            class="text-[15px] font-medium text-white/90 truncate flex-1 hover:text-white no-underline cursor-pointer transition-colors leading-snug"
+            class="text-[14px] font-medium text-white/90 truncate flex-1 hover:text-white no-underline cursor-pointer transition-colors leading-snug"
             title={url.title || url.link}
           >
             {url.title || url.link}
@@ -80,13 +80,13 @@ export function URLCard({ url, onDelete }) {
         </div>
 
         {/* Domain — mono, small, visible */}
-        <div class="font-mono text-[11px] text-gray-500 truncate mb-2">
+        <div class="font-mono text-[11px] text-gray-500 truncate mb-1">
           {domain}
         </div>
 
         {/* Description — Inter, readable gray */}
         {url.description && (
-          <p class="card-desc text-[13px] text-gray-400 leading-relaxed mb-2">
+          <p class="card-desc text-[13px] text-gray-400 leading-tight mb-1">
             {url.description}
           </p>
         )}
@@ -99,7 +99,7 @@ export function URLCard({ url, onDelete }) {
         )}
 
         {/* Category + Tags + Status — small pills */}
-        <div class="flex items-center gap-1.5 flex-wrap mb-2">
+        <div class="card-tags-row flex items-center gap-1.5 mb-1">
           {url.category && (
             <span class="text-[11px] font-medium text-terminal-cyan/70 bg-terminal-cyan/[0.06] px-2 py-[3px] rounded-md">
               {url.category}

@@ -116,7 +116,7 @@
 
   /* Card wrapper & hover expand */
   .card-wrapper {
-    height: 200px;
+    height: 210px;
   }
   .card-default {
     height: 100%;
@@ -129,6 +129,16 @@
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: 2.8em;
+    line-height: 1.4;
+  }
+  .card-tags-row {
+    overflow: hidden;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .card-hover-extra,
   .card-hover-actions {
@@ -149,6 +159,13 @@
   }
   .card-wrapper:hover .card-desc {
     -webkit-line-clamp: unset;
+    overflow: visible;
+    max-height: none;
+    flex: none;
+  }
+  .card-wrapper:hover .card-tags-row {
+    flex-wrap: wrap;
+    white-space: normal;
     overflow: visible;
   }
   .card-wrapper:hover .card-hover-extra {
@@ -186,14 +203,7 @@
     box-shadow: none;
   }
 
-  /* ── Card color themes ── */
-  .card-theme-green  { background: rgba(0, 255, 65, 0.04); }
-  .card-theme-red    { background: rgba(255, 107, 107, 0.04); }
-  .card-theme-cyan   { background: rgba(78, 205, 196, 0.04); }
-  .card-theme-yellow { background: rgba(255, 217, 61, 0.04); }
-  .card-theme-purple { background: rgba(192, 132, 252, 0.04); }
-  .card-theme-orange { background: rgba(251, 146, 60, 0.04); }
-  .card-theme-blue   { background: rgba(96, 165, 250, 0.04); }
+  /* ── Card color themes — moved outside @layer base for specificity ── */
 
   /* ── Status badges ── */
   .badge-pending   { border-color: rgba(234, 179, 8, 0.4); color: #eab308; background: rgba(234, 179, 8, 0.06); }
@@ -234,3 +244,28 @@
   ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 65, 0.3); }
 }
+
+/* ── Card color themes (outside @layer for higher specificity) ── */
+.card-theme-green  { background: rgba(0, 255, 65, 0.05) !important; border-color: rgba(0, 255, 65, 0.12) !important; border-left: 3px solid rgba(0, 255, 65, 0.6) !important; }
+.card-theme-red    { background: rgba(255, 107, 107, 0.05) !important; border-color: rgba(255, 107, 107, 0.12) !important; border-left: 3px solid rgba(255, 107, 107, 0.6) !important; }
+.card-theme-cyan   { background: rgba(78, 205, 196, 0.05) !important; border-color: rgba(78, 205, 196, 0.12) !important; border-left: 3px solid rgba(78, 205, 196, 0.6) !important; }
+.card-theme-yellow { background: rgba(255, 217, 61, 0.05) !important; border-color: rgba(255, 217, 61, 0.12) !important; border-left: 3px solid rgba(255, 217, 61, 0.6) !important; }
+.card-theme-purple { background: rgba(192, 132, 252, 0.05) !important; border-color: rgba(192, 132, 252, 0.12) !important; border-left: 3px solid rgba(192, 132, 252, 0.6) !important; }
+.card-theme-orange { background: rgba(251, 146, 60, 0.05) !important; border-color: rgba(251, 146, 60, 0.12) !important; border-left: 3px solid rgba(251, 146, 60, 0.6) !important; }
+.card-theme-blue   { background: rgba(96, 165, 250, 0.06) !important; border-color: rgba(96, 165, 250, 0.12) !important; border-left: 3px solid rgba(96, 165, 250, 0.6) !important; }
+
+.card-theme-green:hover  { border-color: rgba(0, 255, 65, 0.25) !important; box-shadow: 0 0 15px rgba(0, 255, 65, 0.06); }
+.card-theme-red:hover    { border-color: rgba(255, 107, 107, 0.25) !important; box-shadow: 0 0 15px rgba(255, 107, 107, 0.06); }
+.card-theme-cyan:hover   { border-color: rgba(78, 205, 196, 0.25) !important; box-shadow: 0 0 15px rgba(78, 205, 196, 0.06); }
+.card-theme-yellow:hover { border-color: rgba(255, 217, 61, 0.25) !important; box-shadow: 0 0 15px rgba(255, 217, 61, 0.06); }
+.card-theme-purple:hover { border-color: rgba(192, 132, 252, 0.25) !important; box-shadow: 0 0 15px rgba(192, 132, 252, 0.06); }
+.card-theme-orange:hover { border-color: rgba(251, 146, 60, 0.25) !important; box-shadow: 0 0 15px rgba(251, 146, 60, 0.06); }
+.card-theme-blue:hover   { border-color: rgba(96, 165, 250, 0.25) !important; box-shadow: 0 0 15px rgba(96, 165, 250, 0.06); }
+
+.card-wrapper:hover .card-theme-green  { border-left: 3px solid rgba(0, 255, 65, 0.6) !important; }
+.card-wrapper:hover .card-theme-red    { border-left: 3px solid rgba(255, 107, 107, 0.6) !important; }
+.card-wrapper:hover .card-theme-cyan   { border-left: 3px solid rgba(78, 205, 196, 0.6) !important; }
+.card-wrapper:hover .card-theme-yellow { border-left: 3px solid rgba(255, 217, 61, 0.6) !important; }
+.card-wrapper:hover .card-theme-purple { border-left: 3px solid rgba(192, 132, 252, 0.6) !important; }
+.card-wrapper:hover .card-theme-orange { border-left: 3px solid rgba(251, 146, 60, 0.6) !important; }
+.card-wrapper:hover .card-theme-blue   { border-left: 3px solid rgba(96, 165, 250, 0.6) !important; }

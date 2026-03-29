@@ -18,7 +18,7 @@ CSS_OUT := web/static/css/app.css
 JS_SRC := web/src/js/app.jsx
 JS_OUT := web/static/js/app.js
 
-.PHONY: all build build-server build-cli clean run stop restart test smoke-test wire tidy lint fmt help frontend frontend-css frontend-js dev-frontend
+.PHONY: all build build-server build-cli clean run stop restart test smoke-test wire tidy lint fmt help frontend frontend-css frontend-js dev-frontend release release-full
 
 ## Default target
 all: build
@@ -134,6 +134,10 @@ release:
 	@echo ">>> Release binaries in $(BIN_DIR)/release/"
 	@ls -lh $(BIN_DIR)/release/
 
+## Full release: frontend + cross-compile binaries
+release-full: frontend release
+	@echo ">>> Full release build complete (frontend + binaries)"
+
 ## Show help
 help:
 	@echo "LinkStash Makefile Targets:"
@@ -152,5 +156,6 @@ help:
 	@echo "  make fmt            Format code"
 	@echo "  make lint           Run linter"
 	@echo "  make release        Cross-compile release binaries"
+	@echo "  make release-full   Frontend + cross-compile (full release)"
 	@echo "  make clean          Clean build artifacts"
 	@echo "  make help           Show this help"
