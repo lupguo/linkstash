@@ -136,6 +136,31 @@ func postMigrateMySQL(db *gorm.DB) error {
 	// One-time data migration: convert legacy hex color values to theme keys
 	migrateColorThemes(db)
 
+	// Reorder columns: move created_at, updated_at, deleted_at to the end of each table
+	reorderStatements := []string{
+		// t_urls
+		"ALTER TABLE t_urls MODIFY COLUMN created_at datetime(3) COMMENT '创建时间' AFTER favicon",
+		"ALTER TABLE t_urls MODIFY COLUMN updated_at datetime(3) COMMENT '更新时间' AFTER created_at",
+		"ALTER TABLE t_urls MODIFY COLUMN deleted_at datetime(3) COMMENT '删除时间(软删除)' AFTER updated_at",
+		// t_embeddings
+		"ALTER TABLE t_embeddings MODIFY COLUMN created_at datetime(3) COMMENT '创建时间' AFTER vector",
+		"ALTER TABLE t_embeddings MODIFY COLUMN updated_at datetime(3) COMMENT '更新时间' AFTER created_at",
+		"ALTER TABLE t_embeddings MODIFY COLUMN deleted_at datetime(3) COMMENT '删除时间(软删除)' AFTER updated_at",
+		// t_visit_records
+		"ALTER TABLE t_visit_records MODIFY COLUMN created_at datetime(3) COMMENT '创建时间' AFTER user_agent",
+		"ALTER TABLE t_visit_records MODIFY COLUMN updated_at datetime(3) COMMENT '更新时间' AFTER created_at",
+		"ALTER TABLE t_visit_records MODIFY COLUMN deleted_at datetime(3) COMMENT '删除时间(软删除)' AFTER updated_at",
+		// t_llm_logs
+		"ALTER TABLE t_llm_logs MODIFY COLUMN created_at datetime(3) COMMENT '创建时间' AFTER success",
+		"ALTER TABLE t_llm_logs MODIFY COLUMN updated_at datetime(3) COMMENT '更新时间' AFTER created_at",
+		"ALTER TABLE t_llm_logs MODIFY COLUMN deleted_at datetime(3) COMMENT '删除时间(软删除)' AFTER updated_at",
+	}
+	for _, stmt := range reorderStatements {
+		if err := db.Exec(stmt).Error; err != nil {
+			slog.Warn("column reorder failed (non-fatal)", "component", "db", "stmt", stmt, "error", err)
+		}
+	}
+
 	return nil
 }
 
