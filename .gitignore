@@ -11,6 +11,9 @@ data/
 
 # Dev config (contains local secrets)
 conf/app_dev.yaml
+.env
+.env.*
+!.env.example
 
 # Frontend build output (generated)
 web/static/css/

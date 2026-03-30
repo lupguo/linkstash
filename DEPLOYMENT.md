@@ -143,7 +143,7 @@ go version -m ./linkstash-server | grep main.Version
 
 The server requires:
 - `conf/app_dev.yaml` — application configuration
-- `~/.my.env` — environment variables (includes `OPENROUTER_API_KEY` for LLM features)
+- `.env` — environment variables (copy from `.env.example`, **gitignored**)
 - Auth secret: configured in YAML, default dev value is `clark`
 
 ## Quick Reference
