@@ -11,15 +11,15 @@ database:
   driver: sqlite            # sqlite | mysql
   sqlite:
     path: "./data/linkstash.db"
-  # mysql:
-  #   user: root
-  #   password: "${MYSQL_PASSWORD}"
-  #   host: 127.0.0.1
-  #   port: 3306
-  #   dbname: linkstash_db
-  #   charset: utf8mb4
-  #   max_open_conns: 25
-  #   max_idle_conns: 5
+  mysql:
+    user: "${MYSQL_USER:root}"
+    password: "${MYSQL_PASSWORD}"
+    host: "${MYSQL_HOST:127.0.0.1}"
+    port: ${MYSQL_PORT:3306}
+    dbname: "${MYSQL_DBNAME:linkstash_db}"
+    charset: utf8mb4
+    max_open_conns: 25
+    max_idle_conns: 5
 
 log:
   level: "debug"

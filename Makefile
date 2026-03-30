@@ -57,13 +57,13 @@ dev-frontend:
 ## Run server (foreground)
 run: build-server
 	@mkdir -p $(DATA_DIR)
-	. .env && $(BIN_DIR)/linkstash-server -conf $(CONF)
+	set -a && . .env && set +a && $(BIN_DIR)/linkstash-server -conf $(CONF)
 
 ## Run server in background
 start: build-server
 	@mkdir -p $(DATA_DIR)
 	@echo ">>> Starting LinkStash server..."
-	@. .env && nohup $(BIN_DIR)/linkstash-server -conf $(CONF) > /tmp/linkstash.log 2>&1 & echo $$! > /tmp/linkstash.pid
+	@set -a && . .env && set +a && nohup $(BIN_DIR)/linkstash-server -conf $(CONF) > /tmp/linkstash.log 2>&1 & echo $$! > /tmp/linkstash.pid
 	@echo "Server started (PID: $$(cat /tmp/linkstash.pid)), log: /tmp/linkstash.log"
 
 ## Stop background server (only kills linkstash-server processes)

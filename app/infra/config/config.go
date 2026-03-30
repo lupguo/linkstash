@@ -160,11 +160,16 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("read config file: %w", err)
 	}
 
-	// Resolve environment variable references like ${VAR_NAME}
+	// Resolve environment variable references: ${VAR} or ${VAR:default}
+	// If VAR is set and non-empty, use its value; otherwise use default (if provided).
 	resolved := envVarRegex.ReplaceAllStringFunc(string(data), func(match string) string {
-		varName := strings.TrimSuffix(strings.TrimPrefix(match, "${"), "}")
-		if val, ok := os.LookupEnv(varName); ok {
+		inner := strings.TrimSuffix(strings.TrimPrefix(match, "${"), "}")
+		varName, defaultVal, hasDefault := strings.Cut(inner, ":")
+		if val := os.Getenv(varName); val != "" {
 			return val
+		}
+		if hasDefault {
+			return defaultVal
 		}
 		return match // keep original if env var not set
 	})
