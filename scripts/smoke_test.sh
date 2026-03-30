@@ -81,7 +81,7 @@ check_status "Wrong secret returns 401" "401" "$STATUS"
 # Test 4: Get JWT token
 TOKEN_RESP=$(curl -s -X POST $SERVER/api/auth/token \
     -H "Content-Type: application/json" \
-    -d '{"secret_key":"clark"}')
+    -d "{\"secret_key\":\"${AUTH_SECRET_KEY:-clark}\"}")
 check "Get JWT token" '"token"' "$TOKEN_RESP"
 TOKEN=$(json_field "$TOKEN_RESP" "['token']")
 export LINKSTASH_TOKEN="$TOKEN"
@@ -305,7 +305,7 @@ CLI="./bin/linkstash"
 # Fallback to ./linkstash if bin/ not found
 [ -f "$CLI" ] || CLI="./linkstash"
 
-export LINKSTASH_SECRET_KEY="clark"
+export LINKSTASH_SECRET_KEY="${AUTH_SECRET_KEY:-clark}"
 
 # CLI add (unique URL)
 CLI_ADD=$($CLI add "https://wikipedia.org/smoke-${UNIQUE}" 2>&1)

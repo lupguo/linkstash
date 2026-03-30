@@ -22,7 +22,7 @@ make fmt            # gofmt -s -w .
 make wire           # Regenerate Wire DI code (after changing providers)
 ```
 
-Server requires `~/.my.env` with `OPENROUTER_API_KEY` for LLM features. Config: `conf/app_dev.yaml`. Auth secret: `clark`.
+Server requires `~/.my.env` with `OPENROUTER_API_KEY`, `AUTH_SECRET_KEY`, `JWT_SECRET`, `MYSQL_PASSWORD` for LLM and auth features. Config: `conf/app_dev.yaml` (uses `${VAR}` env interpolation).
 
 ## Architecture
 

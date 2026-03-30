@@ -32,12 +32,12 @@ var migrateCmd = &cobra.Command{
 Examples:
   # Using DSN string
   linkstash migrate --sqlite-path ./data/linkstash.db \
-    --mysql-dsn "root:Secret123.@tcp(127.0.0.1:3308)/linkstash_db?charset=utf8mb4&parseTime=True&loc=Local"
+    --mysql-dsn "root:YOUR_DB_PASSWORD@tcp(127.0.0.1:3306)/linkstash_db?charset=utf8mb4&parseTime=True&loc=Local"
 
   # Using individual parameters
   linkstash migrate --sqlite-path ./data/linkstash.db \
-    --mysql-user root --mysql-password Secret123. \
-    --mysql-host 127.0.0.1 --mysql-port 3308 --mysql-db linkstash_db`,
+    --mysql-user root --mysql-password YOUR_DB_PASSWORD \
+    --mysql-host 127.0.0.1 --mysql-port 3306 --mysql-db linkstash_db`,
 	// Override PersistentPreRun to skip auth (migrate doesn't need a running server)
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {},
 	RunE:             runMigrate,

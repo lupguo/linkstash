@@ -4,7 +4,7 @@ server:
 
 auth:
   secret_key: "passwd"
-  jwt_secret: "linkstash-jwt-secret-key-change-in-production"
+  jwt_secret: "${JWT_SECRET}"
   jwt_expire_hours: 72
 
 database:
