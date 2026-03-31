@@ -24,7 +24,7 @@ jobs:
       - name: Build frontend assets (needed for go:embed)
         run: |
           npm ci
-          npx @tailwindcss/cli -i web/src/css/app.css -o web/static/css/app.css --minify
+          npx tailwindcss@3.4.17 -i web/src/css/app.css -o web/static/css/app.css --minify
           npx esbuild web/src/js/app.jsx --bundle --minify --outfile=web/static/js/app.js --jsx=automatic --jsx-import-source=preact
 
       - uses: actions/setup-go@v6
