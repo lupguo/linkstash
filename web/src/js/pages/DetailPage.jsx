@@ -166,6 +166,8 @@ export function DetailPage({ id }) {
         showMessage('URL updated successfully');
         setEditing(false);
         await loadUrl();
+        // Notify IndexPage to refresh when user navigates back
+        window.dispatchEvent(new Event('linkstash:url-updated'));
       }
     } catch (err) {
       showMessage('Save failed: ' + err.message, 'error');
@@ -290,10 +292,14 @@ export function DetailPage({ id }) {
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-3 gap-4">
               <div>
                 <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Manual Weight</label>
                 <input type="number" class="input w-full" value={form.manual_weight} onInput={(e) => updateField('manual_weight', e.target.value)} />
+              </div>
+              <div>
+                <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Auto Weight</label>
+                <input type="number" class="input w-full" value={urlData?.auto_weight || 0} disabled />
               </div>
               <div>
                 <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Visit Count</label>

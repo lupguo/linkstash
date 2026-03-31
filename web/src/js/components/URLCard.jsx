@@ -33,7 +33,6 @@ function relativeTime(dateStr) {
 export function URLCard({ url, onDelete }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Visit: track + open in new tab
   async function handleVisit(e) {
     e.stopPropagation();
     try {
@@ -81,7 +80,7 @@ export function URLCard({ url, onDelete }) {
   return (
     <div class={`link-item group relative ${colorClass}`} onClick={handleClick}>
       {/* Row 1: favicon + title + domain */}
-      <div class="flex items-center gap-2 min-w-0">
+      <div class="flex items-center gap-2 min-w-0 overflow-hidden">
         <img
           src={faviconSrc}
           alt=""
@@ -89,7 +88,7 @@ export function URLCard({ url, onDelete }) {
           loading="lazy"
           onError={(e) => { e.target.style.display = 'none'; }}
         />
-        <span class="text-sm font-medium text-text-primary truncate flex-1" title={url.title || url.link}>
+        <span class="text-sm font-medium text-text-primary truncate min-w-0 flex-1" title={url.title || url.link}>
           {url.title || url.link}
         </span>
         <span class="font-mono text-[11px] text-text-muted flex-shrink-0 hidden sm:inline">
@@ -102,14 +101,14 @@ export function URLCard({ url, onDelete }) {
         )}
       </div>
 
-      {/* Row 2: description + tags + category + status + time */}
-      <div class="flex items-center gap-2 mt-1 min-w-0">
+      {/* Row 2: description + tags + category + status + weight + time */}
+      <div class="flex items-center gap-2 mt-1 min-w-0 overflow-hidden">
         {url.description ? (
-          <p class="text-xs text-text-secondary truncate flex-1">
+          <p class="text-xs text-text-secondary truncate min-w-0 flex-1">
             {url.description}
           </p>
         ) : (
-          <span class="flex-1" />
+          <span class="flex-1 min-w-0" />
         )}
         {url.tags && (
           <span class="text-[10px] text-text-muted bg-bg-surface-hi/50 px-1.5 py-0.5 rounded flex-shrink-0 hidden md:inline truncate max-w-[80px]">
@@ -129,13 +128,14 @@ export function URLCard({ url, onDelete }) {
         {url.short_code && (
           <span class="text-[10px] text-accent/40 font-mono flex-shrink-0 hidden lg:inline">/s/{url.short_code}</span>
         )}
+        <span class="font-mono text-[10px] text-text-muted flex-shrink-0 tabular-nums">w:{weight}</span>
         <span class="text-[11px] text-text-muted flex-shrink-0 tabular-nums">
           {relativeTime(url.created_at)}
         </span>
       </div>
 
-      {/* Hover action bar */}
-      <div class="hidden group-hover:flex absolute right-2 top-1/2 -translate-y-1/2 items-center gap-1 bg-bg-surface border border-border-hi rounded-md px-1 py-0.5 shadow-lg z-10">
+      {/* Hover action bar — bottom-right */}
+      <div class="hidden group-hover:flex absolute right-2 bottom-1 items-center gap-1 bg-bg-surface border border-border-hi rounded-md px-1 py-0.5 shadow-lg z-10">
         <button
           onClick={handleVisit}
           class="text-[11px] text-text-muted hover:text-accent px-1.5 py-0.5 rounded transition-colors"

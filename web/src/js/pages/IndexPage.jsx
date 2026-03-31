@@ -13,7 +13,7 @@ export function IndexPage() {
   const [searchType, setSearchType] = useState('keyword');
   const [category, setCategory] = useState('');
   const [sort, setSort] = useState('weight');
-  const [size, setSize] = useState(20);
+  const [size, setSize] = useState(100);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [minScore, setMinScore] = useState(0.6);
@@ -103,6 +103,20 @@ export function IndexPage() {
     fetchData(1, false);
   }, [isAuthenticated.value, query, searchType, category, sort, size, minScore, isShortURL]);
 
+  // Refetch when navigating back (e.g. after editing a URL)
+  // preact-router re-renders but doesn't remount, so listen for route changes
+  useEffect(() => {
+    function handleRouteChange() {
+      if (isAuthenticated.value && window.location.pathname === '/') {
+        setPage(1);
+        fetchData(1, false);
+      }
+    }
+    // Custom event emitted after URL save in DetailPage
+    window.addEventListener('linkstash:url-updated', handleRouteChange);
+    return () => window.removeEventListener('linkstash:url-updated', handleRouteChange);
+  }, [fetchData]);
+
   // Load more on page change (page > 1)
   useEffect(() => {
     if (page > 1) {
@@ -135,7 +149,7 @@ export function IndexPage() {
         setQuery('');
         setCategory('');
         setSort('weight');
-        setSize(20);
+        setSize(100);
         setIsShortURL(false);
         setMinScore(0.6);
         setSearchType('keyword');
