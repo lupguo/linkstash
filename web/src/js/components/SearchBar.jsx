@@ -51,6 +51,10 @@ export function SearchBar({ query, searchType, category, sort, size, isShortURL,
             placeholder="Search URLs..."
             value={localQuery}
             onInput={(e) => setLocalQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowDown') { e.preventDefault(); setFiltersOpen(true); }
+              else if (e.key === 'ArrowUp') { e.preventDefault(); setFiltersOpen(false); }
+            }}
           />
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8" />
