@@ -19,6 +19,7 @@ const EMPTY_FORM = {
   ttl: 0,
   color: '',
   icon: '',
+  favicon: '',
   status: '',
 };
 
@@ -81,6 +82,7 @@ export function DetailPage({ id }) {
         ttl: 0,
         color: data.color || '',
         icon: data.icon || '',
+        favicon: data.favicon || '',
         status: data.status || '',
       });
       setEnableShortCode(!!data.short_code);
@@ -121,6 +123,7 @@ export function DetailPage({ id }) {
           manual_weight: Number(form.manual_weight) || 0,
           color: form.color,
           icon: form.icon,
+          favicon: form.favicon,
         });
 
         if (enableShortCode && form.short_code) {
@@ -149,6 +152,7 @@ export function DetailPage({ id }) {
           visit_count: Number(form.visit_count) || 0,
           color: form.color,
           icon: form.icon,
+          favicon: form.favicon,
         });
 
         if (enableShortCode && form.short_code && (!urlData || !urlData.short_code)) {
@@ -166,7 +170,6 @@ export function DetailPage({ id }) {
         showMessage('URL updated successfully');
         setEditing(false);
         await loadUrl();
-        // Notify IndexPage to refresh when user navigates back
         window.dispatchEvent(new Event('linkstash:url-updated'));
       }
     } catch (err) {
@@ -205,8 +208,6 @@ export function DetailPage({ id }) {
 
   if (!isAuthenticated.value) return null;
 
-  const statusBadge = urlData ? `badge-${urlData.status}` : '';
-
   return (
     <div class="max-w-3xl mx-auto">
       {/* Back link */}
@@ -216,19 +217,21 @@ export function DetailPage({ id }) {
       </a>
 
       <div class="surface-card rounded-lg p-6">
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center gap-3">
-            <h1 class="text-text-primary text-xl font-semibold">
+        {/* Header: title + actions */}
+        <div class="flex items-start justify-between mb-5">
+          <div class="flex-1 min-w-0">
+            <h1 class="text-text-primary text-xl font-semibold truncate">
               {isNew ? 'New URL' : (urlData?.title || `URL #${id}`)}
             </h1>
-            {!isNew && urlData && urlData.status && (
-              <span class={`${statusBadge} text-xs border px-2 py-0.5 rounded`}>
-                {urlData.status}
-              </span>
+            {!isNew && urlData && (
+              <div class="flex items-center gap-3 mt-1.5 text-xs text-text-muted">
+                <span>Status: <span class={`badge-${urlData.status} border px-1.5 py-0.5 rounded`}>{urlData.status || '-'}</span></span>
+                <span>ID: {id}</span>
+              </div>
             )}
           </div>
           {!isNew && (
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-shrink-0 ml-4">
               {!editing && (
                 <button onClick={() => setEditing(true)} class="btn text-sm px-3 py-1.5">
                   Edit
@@ -253,30 +256,35 @@ export function DetailPage({ id }) {
 
         {editing ? (
           <form onSubmit={handleSubmit} class="space-y-4">
+            {/* Link */}
             <div>
               <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Link *</label>
-              <input type="url" class="input w-full" value={form.link} onInput={(e) => updateField('link', e.target.value)} placeholder="https://example.com" required />
+              <input type="url" class="input w-full text-sm" value={form.link} onInput={(e) => updateField('link', e.target.value)} placeholder="https://example.com" required />
             </div>
 
+            {/* Title */}
             <div>
               <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Title</label>
-              <input type="text" class="input w-full" value={form.title} onInput={(e) => updateField('title', e.target.value)} placeholder="Page title" />
+              <input type="text" class="input w-full text-sm" value={form.title} onInput={(e) => updateField('title', e.target.value)} placeholder="Page title" />
             </div>
 
+            {/* Description */}
             <div>
               <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Description</label>
-              <textarea class="input w-full h-24 resize-y" value={form.description} onInput={(e) => updateField('description', e.target.value)} placeholder="Description" />
+              <textarea class="input w-full h-20 resize-y text-sm" value={form.description} onInput={(e) => updateField('description', e.target.value)} placeholder="Description" />
             </div>
 
+            {/* Keywords */}
             <div>
               <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Keywords</label>
-              <input type="text" class="input w-full" value={form.keywords} onInput={(e) => updateField('keywords', e.target.value)} placeholder="keyword1, keyword2, keyword3" />
+              <input type="text" class="input w-full text-sm" value={form.keywords} onInput={(e) => updateField('keywords', e.target.value)} placeholder="keyword1, keyword2, keyword3" />
             </div>
 
+            {/* Category + Tags */}
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Category</label>
-                <select class="input w-full" value={form.category} onChange={(e) => updateField('category', e.target.value)}>
+                <select class="input w-full text-sm" value={form.category} onChange={(e) => updateField('category', e.target.value)}>
                   <option value="">Select...</option>
                   {categories.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -288,35 +296,59 @@ export function DetailPage({ id }) {
               </div>
               <div>
                 <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Tags</label>
-                <input type="text" class="input w-full" value={form.tags} onInput={(e) => updateField('tags', e.target.value)} placeholder="tag1, tag2" />
+                <input type="text" class="input w-full text-sm" value={form.tags} onInput={(e) => updateField('tags', e.target.value)} placeholder="tag1, tag2" />
               </div>
             </div>
 
+            {/* Auto Weight + Visit Count + Manual Weight */}
             <div class="grid grid-cols-3 gap-4">
               <div>
-                <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Manual Weight</label>
-                <input type="number" class="input w-full" value={form.manual_weight} onInput={(e) => updateField('manual_weight', e.target.value)} />
-              </div>
-              <div>
                 <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Auto Weight</label>
-                <input type="number" class="input w-full" value={urlData?.auto_weight || 0} disabled />
+                <input type="number" class="input w-full text-sm text-text-muted bg-bg-surface-hi/30" value={urlData?.auto_weight || 0} disabled />
               </div>
               <div>
                 <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Visit Count</label>
-                <input type="number" class="input w-full" value={form.visit_count} onInput={(e) => updateField('visit_count', e.target.value)} disabled={isNew} />
+                <input type="number" class="input w-full text-sm" value={form.visit_count} onInput={(e) => updateField('visit_count', e.target.value)} disabled={isNew} />
+              </div>
+              <div>
+                <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Manual Weight</label>
+                <input type="number" class="input w-full text-sm" value={form.manual_weight} onInput={(e) => updateField('manual_weight', e.target.value)} />
               </div>
             </div>
 
+            {/* Color */}
             <div>
               <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Color</label>
               <ColorPicker value={form.color} onChange={(c) => updateField('color', c)} />
             </div>
 
-            <div>
-              <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Icon</label>
-              <input type="text" class="input w-full" value={form.icon} onInput={(e) => updateField('icon', e.target.value)} placeholder="Icon URL or emoji" />
+            {/* Icon + Favicon — same row */}
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Icon</label>
+                <input type="text" class="input w-full text-sm" value={form.icon} onInput={(e) => updateField('icon', e.target.value)} placeholder="Emoji icon" />
+              </div>
+              <div>
+                <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Favicon</label>
+                <div class="flex items-center gap-2">
+                  {form.favicon && (
+                    <img src={form.favicon} alt="favicon" class="w-5 h-5 rounded flex-shrink-0" />
+                  )}
+                  <span class="input flex-1 text-sm text-text-muted truncate cursor-default">{form.favicon ? 'Has favicon' : 'No favicon'}</span>
+                  {form.favicon && (
+                    <button
+                      type="button"
+                      class="btn btn-danger text-xs px-2 py-1 flex-shrink-0"
+                      onClick={() => updateField('favicon', '')}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
+            {/* Short Link */}
             <div>
               <label class="flex items-center gap-2 text-text-secondary text-sm mb-1 cursor-pointer">
                 <input type="checkbox" checked={enableShortCode} onChange={(e) => setEnableShortCode(e.target.checked)} class="accent-sky-400" />
@@ -326,11 +358,11 @@ export function DetailPage({ id }) {
                 <div class="grid grid-cols-2 gap-4 mt-2">
                   <div>
                     <label class="block text-text-muted text-xs mb-1">Short Code</label>
-                    <input type="text" class="input w-full" value={form.short_code} onInput={(e) => updateField('short_code', e.target.value)} placeholder="custom-code" />
+                    <input type="text" class="input w-full text-sm" value={form.short_code} onInput={(e) => updateField('short_code', e.target.value)} placeholder="custom-code" />
                   </div>
                   <div>
                     <label class="block text-text-muted text-xs mb-1">TTL</label>
-                    <select class="input w-full" value={form.ttl} onChange={(e) => updateField('ttl', Number(e.target.value))}>
+                    <select class="input w-full text-sm" value={form.ttl} onChange={(e) => updateField('ttl', Number(e.target.value))}>
                       <option value={0}>Permanent</option>
                       <option value={86400}>1 day</option>
                       <option value={604800}>7 days</option>
@@ -343,6 +375,7 @@ export function DetailPage({ id }) {
               )}
             </div>
 
+            {/* Actions */}
             <div class="flex items-center gap-3 pt-4 border-t border-border-hi">
               <button type="submit" class="btn btn-primary text-sm px-4 py-2" disabled={saving}>
                 {saving ? 'Saving...' : isNew ? 'Create' : 'Save'}
@@ -355,15 +388,20 @@ export function DetailPage({ id }) {
             </div>
           </form>
         ) : (
+          /* View mode */
           urlData && (
-            <div class="space-y-4">
+            <div class="space-y-3">
+              {/* Link */}
               <div>
-                <h2 class="text-lg text-text-primary font-medium mb-1">{urlData.title || 'Untitled'}</h2>
-                <a href={urlData.link} target="_blank" rel="noopener noreferrer" class="text-accent text-sm font-mono hover:underline break-all">
-                  {urlData.link}
-                </a>
+                <label class="text-text-muted text-xs font-medium uppercase tracking-wider">Link</label>
+                <p class="mt-1">
+                  <a href={urlData.link} target="_blank" rel="noopener noreferrer" class="text-accent text-sm font-mono hover:underline break-all">
+                    {urlData.link}
+                  </a>
+                </p>
               </div>
 
+              {/* Description */}
               {urlData.description && (
                 <div>
                   <label class="text-text-muted text-xs font-medium uppercase tracking-wider">Description</label>
@@ -371,6 +409,7 @@ export function DetailPage({ id }) {
                 </div>
               )}
 
+              {/* Keywords */}
               {urlData.keywords && (
                 <div>
                   <label class="text-text-muted text-xs font-medium uppercase tracking-wider">Keywords</label>
@@ -378,7 +417,8 @@ export function DetailPage({ id }) {
                 </div>
               )}
 
-              <div class="flex gap-4">
+              {/* Category + Tags */}
+              <div class="flex gap-6">
                 {urlData.category && (
                   <div>
                     <label class="text-text-muted text-xs font-medium uppercase tracking-wider">Category</label>
@@ -393,6 +433,7 @@ export function DetailPage({ id }) {
                 )}
               </div>
 
+              {/* Short Link */}
               {urlData.short_code && (
                 <div>
                   <label class="text-text-muted text-xs font-medium uppercase tracking-wider">Short Link</label>
@@ -402,14 +443,15 @@ export function DetailPage({ id }) {
                 </div>
               )}
 
+              {/* Metadata grid */}
               <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t border-border-hi text-xs">
-                <div>
-                  <span class="text-text-muted font-medium uppercase tracking-wider">Manual Weight</span>
-                  <p class="text-text-primary mt-0.5">{urlData.manual_weight || 0}</p>
-                </div>
                 <div>
                   <span class="text-text-muted font-medium uppercase tracking-wider">Auto Weight</span>
                   <p class="text-text-primary mt-0.5">{urlData.auto_weight || 0}</p>
+                </div>
+                <div>
+                  <span class="text-text-muted font-medium uppercase tracking-wider">Manual Weight</span>
+                  <p class="text-text-primary mt-0.5">{urlData.manual_weight || 0}</p>
                 </div>
                 <div>
                   <span class="text-text-muted font-medium uppercase tracking-wider">Visits</span>
@@ -433,7 +475,7 @@ export function DetailPage({ id }) {
                 </div>
                 <div>
                   <span class="text-text-muted font-medium uppercase tracking-wider">Status</span>
-                  <p class={`badge-${urlData.status} mt-0.5`}>{urlData.status || '-'}</p>
+                  <p class="text-text-primary mt-0.5">{urlData.status || '-'}</p>
                 </div>
               </div>
             </div>
