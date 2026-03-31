@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"github.com/lupguo/linkstash/app/di"
 	"github.com/lupguo/linkstash/app/infra/logger"
 	"github.com/lupguo/linkstash/app/middleware"
+	"github.com/lupguo/linkstash/web"
 )
 
 // Version is set by ldflags at build time.
@@ -71,8 +73,9 @@ func main() {
 		json.NewEncoder(w).Encode(map[string][]string{"categories": app.Config.Categories})
 	})
 
-	// Static files with cache headers
-	fileServer := http.FileServer(http.Dir("web/static"))
+	// Static files with cache headers (embedded)
+	staticSub, _ := fs.Sub(web.StaticFS, "static")
+	fileServer := http.FileServer(http.FS(staticSub))
 	r.Handle("/static/*", staticCacheMiddleware(http.StripPrefix("/static/", fileServer)))
 
 	// Protected API routes

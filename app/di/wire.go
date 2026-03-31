@@ -13,6 +13,7 @@ import (
 	"github.com/lupguo/linkstash/app/domain/services"
 	"github.com/lupguo/linkstash/app/handler"
 	"github.com/lupguo/linkstash/app/infra/browser"
+	"github.com/lupguo/linkstash/web"
 	"github.com/lupguo/linkstash/app/infra/config"
 	"github.com/lupguo/linkstash/app/infra/db"
 	"github.com/lupguo/linkstash/app/infra/llm"
@@ -91,7 +92,7 @@ func ProvideAuthConfig(cfg *config.Config) *config.AuthConfig {
 }
 
 func ProvideWebHandler() *handler.WebHandler {
-	return handler.NewWebHandler("web", AppVersion)
+	return handler.NewWebHandler(web.SpaHTML, AppVersion)
 }
 
 // --- Provider sets ---

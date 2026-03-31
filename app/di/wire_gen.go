@@ -13,6 +13,7 @@ import (
 	"github.com/lupguo/linkstash/app/domain/services"
 	"github.com/lupguo/linkstash/app/handler"
 	"github.com/lupguo/linkstash/app/infra/browser"
+	"github.com/lupguo/linkstash/web"
 	"github.com/lupguo/linkstash/app/infra/config"
 	"github.com/lupguo/linkstash/app/infra/db"
 	"github.com/lupguo/linkstash/app/infra/llm"
@@ -72,7 +73,7 @@ func InitializeApp(confPath string) (*App, error) {
 	urlHandler := handler.NewURLHandler(urlUsecase)
 	searchHandler := handler.NewSearchHandler(searchUsecase)
 	shortURLHandler := handler.NewShortURLHandler(urlUsecase)
-	webHandler := handler.NewWebHandler("web", AppVersion)
+	webHandler := handler.NewWebHandler(web.SpaHTML, AppVersion)
 
 	app := &App{
 		Config:          cfg,
