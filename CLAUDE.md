@@ -11,7 +11,7 @@ make frontend       # CSS + JS only
 make frontend-js    # JS only (esbuild bundle)
 make dev-frontend   # Watch mode for CSS + JS
 
-make start          # Build + start server in background (port 8080)
+make start          # Build + start server in background (port 8888)
 make stop           # Stop background server
 make restart        # Stop + start
 

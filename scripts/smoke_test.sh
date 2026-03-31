@@ -5,7 +5,7 @@
 
 set -e
 
-SERVER="http://localhost:8080"
+SERVER="${LINKSTASH_SERVER:-http://localhost:8888}"
 PASS=0
 FAIL=0
 TOTAL=0

@@ -96,7 +96,7 @@ llm:
 ### 2. 启动
 
 ```bash
-make start        # 后台启动（端口 8080）
+make start        # 后台启动（端口 8888）
 make stop         # 停止
 make restart      # 重启
 make run          # 前台运行（调试用）
@@ -112,8 +112,8 @@ linkstash --version           # 查看 CLI 版本
 ### 4. 使用 CLI
 
 ```bash
-export LINKSTASH_SERVER=http://localhost:8080
-export LINKSTASH_TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/token \
+export LINKSTASH_SERVER=http://localhost:8888
+export LINKSTASH_TOKEN=$(curl -s -X POST http://localhost:8888/api/auth/token \
   -H "Content-Type: application/json" \
   -d '{"secret_key":"your-login-secret"}' | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
 
