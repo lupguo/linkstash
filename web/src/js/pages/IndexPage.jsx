@@ -181,7 +181,7 @@ export function IndexPage() {
         onFilterChange={handleFilterChange}
       />
 
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-1.5 mt-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-1.5 mt-4">
         {urls.map(url => (
           <URLCard key={url.id} url={url} onDelete={handleDelete} />
         ))}

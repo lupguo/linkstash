@@ -1,5 +1,9 @@
 import { h } from 'preact';
 import { route } from 'preact-router';
+import { useState } from 'preact/hooks';
+import { urlApi } from '../api.js';
+import { copyToClipboard } from '../utils.js';
+import { ConfirmModal } from './ConfirmModal.jsx';
 
 function getDomain(link) {
   try {
@@ -26,7 +30,45 @@ function relativeTime(dateStr) {
   return `${Math.floor(months / 12)}y ago`;
 }
 
-export function URLCard({ url }) {
+export function URLCard({ url, onDelete }) {
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // Visit: track + open in new tab
+  async function handleVisit(e) {
+    e.stopPropagation();
+    try {
+      await urlApi.visit(url.id);
+    } catch (err) {
+      // ignore visit tracking errors
+    }
+    window.open(url.link, '_blank');
+  }
+
+  function handleCopy(e) {
+    e.stopPropagation();
+    copyToClipboard(url.link);
+  }
+
+  function handleEdit(e) {
+    e.stopPropagation();
+    route(`/urls/${url.id}?edit`);
+  }
+
+  function handleDelete(e) {
+    e.stopPropagation();
+    setShowDeleteModal(true);
+  }
+
+  async function confirmDelete() {
+    setShowDeleteModal(false);
+    try {
+      await urlApi.delete(url.id);
+      if (onDelete) onDelete(url.id);
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  }
+
   function handleClick() {
     route(`/urls/${url.id}`);
   }
@@ -34,10 +76,11 @@ export function URLCard({ url }) {
   const colorClass = url.color ? `card-theme-${url.color}` : '';
   const domain = getDomain(url.link);
   const faviconSrc = url.favicon || `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
+  const weight = (url.manual_weight || 0) + (url.auto_weight || 0);
 
   return (
-    <div class={`link-item ${colorClass}`} onClick={handleClick}>
-      {/* Row 1: favicon + title + domain + time */}
+    <div class={`link-item group relative ${colorClass}`} onClick={handleClick}>
+      {/* Row 1: favicon + title + domain */}
       <div class="flex items-center gap-2 min-w-0">
         <img
           src={faviconSrc}
@@ -59,7 +102,7 @@ export function URLCard({ url }) {
         )}
       </div>
 
-      {/* Row 2: description + category pill + time */}
+      {/* Row 2: description + tags + category + status + time */}
       <div class="flex items-center gap-2 mt-1 min-w-0">
         {url.description ? (
           <p class="text-xs text-text-secondary truncate flex-1">
@@ -68,15 +111,70 @@ export function URLCard({ url }) {
         ) : (
           <span class="flex-1" />
         )}
+        {url.tags && (
+          <span class="text-[10px] text-text-muted bg-bg-surface-hi/50 px-1.5 py-0.5 rounded flex-shrink-0 hidden md:inline truncate max-w-[80px]">
+            {url.tags.split(',')[0].trim()}
+          </span>
+        )}
         {url.category && (
           <span class="text-[10px] font-medium text-accent/70 bg-accent/[0.08] px-1.5 py-0.5 rounded-full flex-shrink-0 uppercase tracking-wider">
             {url.category}
           </span>
         )}
+        {url.status && url.status !== 'ready' && (
+          <span class={`badge-${url.status} text-[10px] font-medium border px-1.5 py-0.5 rounded flex-shrink-0`}>
+            {url.status}
+          </span>
+        )}
+        {url.short_code && (
+          <span class="text-[10px] text-accent/40 font-mono flex-shrink-0 hidden lg:inline">/s/{url.short_code}</span>
+        )}
         <span class="text-[11px] text-text-muted flex-shrink-0 tabular-nums">
           {relativeTime(url.created_at)}
         </span>
       </div>
+
+      {/* Hover action bar */}
+      <div class="hidden group-hover:flex absolute right-2 top-1/2 -translate-y-1/2 items-center gap-1 bg-bg-surface border border-border-hi rounded-md px-1 py-0.5 shadow-lg z-10">
+        <button
+          onClick={handleVisit}
+          class="text-[11px] text-text-muted hover:text-accent px-1.5 py-0.5 rounded transition-colors"
+          title="Open link"
+        >
+          Visit
+        </button>
+        <button
+          onClick={handleCopy}
+          class="text-[11px] text-text-muted hover:text-accent px-1.5 py-0.5 rounded transition-colors"
+          title="Copy link"
+        >
+          Copy
+        </button>
+        <button
+          onClick={handleEdit}
+          class="text-[11px] text-text-muted hover:text-accent px-1.5 py-0.5 rounded transition-colors"
+          title="Edit"
+        >
+          Edit
+        </button>
+        <button
+          onClick={handleDelete}
+          class="text-[11px] text-text-muted hover:text-red-400 px-1.5 py-0.5 rounded transition-colors"
+          title="Delete"
+        >
+          Del
+        </button>
+      </div>
+
+      <ConfirmModal
+        open={showDeleteModal}
+        title="Confirm Delete"
+        message={`Delete "${url.title || url.link}"?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </div>
   );
 }
