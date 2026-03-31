@@ -88,10 +88,10 @@ export function URLCard({ url, onDelete }) {
           loading="lazy"
           onError={(e) => { e.target.style.display = 'none'; }}
         />
-        <span class="text-sm font-medium text-text-primary truncate min-w-0 flex-1" title={url.title || url.link}>
+        <span class="text-sm font-medium text-text-primary truncate min-w-[40%] flex-1" title={url.title || url.link}>
           {url.title || url.link}
         </span>
-        <span class="font-mono text-[11px] text-text-muted flex-shrink-0 hidden sm:inline">
+        <span class="font-mono text-[11px] text-text-muted flex-shrink-0 hidden sm:inline truncate max-w-[40%]" title={domain}>
           {domain}
         </span>
         {url.score != null && (
