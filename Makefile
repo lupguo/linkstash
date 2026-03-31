@@ -2,8 +2,8 @@
 APP_NAME := linkstash
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
-GO_VERSION := $(shell go version | awk '{print $$3}')
-LDFLAGS := -s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)
+GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+LDFLAGS := -s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)
 
 # Directories
 BIN_DIR := bin
@@ -66,7 +66,7 @@ start: build-server
 	@set -a && . .env && set +a && nohup $(BIN_DIR)/linkstash-server -conf $(CONF) > /tmp/linkstash.log 2>&1 & echo $$! > /tmp/linkstash.pid
 	@echo "Server started (PID: $$(cat /tmp/linkstash.pid)), log: /tmp/linkstash.log"
 
-## Stop background server (only kills linkstash-server processes)
+## Stop background server (PID file only, no pkill)
 stop:
 	@if [ -f /tmp/linkstash.pid ]; then \
 		PID=$$(cat /tmp/linkstash.pid); \
@@ -77,8 +77,7 @@ stop:
 		fi; \
 		rm -f /tmp/linkstash.pid; \
 	else \
-		echo "No PID file found, trying pkill..."; \
-		pkill -f 'linkstash-server' 2>/dev/null && echo "Server stopped" || echo "Server not running"; \
+		echo "No PID file found. To find the process manually: lsof -ti:8080"; \
 	fi
 
 ## Restart server

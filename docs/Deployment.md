@@ -21,7 +21,7 @@
 |------|------|
 | Go | 1.21+（仅编译时需要） |
 | 操作系统 | Linux / macOS / Windows |
-| 磁盘 | ≥100MB（二进制 ~22MB + 数据库按量增长） |
+| 磁盘 | ≥100MB（二进制 ~25MB + 数据库按量增长） |
 | 内存 | ≥64MB（万级 URL 向量缓存约 20MB） |
 | 网络 | 需访问 LLM API（OpenAI / OpenRouter 等） |
 
@@ -115,15 +115,13 @@ llm:
 ```bash
 sudo mkdir -p /opt/linkstash/bin
 sudo mkdir -p /opt/linkstash/conf
-sudo mkdir -p /opt/linkstash/web
 sudo mkdir -p /var/lib/linkstash          # 数据库目录
 sudo mkdir -p /var/log/linkstash          # 日志目录
 
-# 部署文件
+# 部署文件（v0.4.0 起前端资源已嵌入二进制，无需单独部署 web/ 目录）
 sudo cp linkstash-server /opt/linkstash/bin/
 sudo cp linkstash /opt/linkstash/bin/
 sudo cp conf/app_prod.yaml /opt/linkstash/conf/app.yaml
-sudo cp -r web/ /opt/linkstash/web/
 ```
 
 ---
@@ -149,7 +147,6 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
 COPY --from=builder /build/linkstash-server /app/
 COPY --from=builder /build/linkstash /app/
-COPY --from=builder /build/web/ /app/web/
 COPY --from=builder /build/conf/app_dev.yaml /app/conf/app.yaml
 
 RUN mkdir -p /app/data
@@ -472,6 +469,9 @@ INSERT INTO t_urls_fts(t_urls_fts) VALUES('rebuild');
 sqlite3 /var/lib/linkstash/linkstash.db "SELECT code, long_url, expires_at FROM t_short_links WHERE deleted_at IS NULL"
 ```
 
-**5. Web 页面 500 错误**
+**5. 查看版本信息**
 
-确保 `web/` 目录存在且包含模板文件。服务启动时在 `web/` 相对目录下查找模板。
+```bash
+linkstash-server --version    # 查看服务端版本、构建时间、commit
+linkstash --version           # 查看 CLI 版本
+```

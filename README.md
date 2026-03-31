@@ -61,7 +61,7 @@ make build      # 前端 (CSS+JS) + server + CLI → bin/
 
 前往 [Releases](https://github.com/lupguo/linkstash/releases) 下载预编译二进制。
 
-支持平台：Linux (amd64/arm64)、macOS (amd64/arm64)。每个 Release 包含 `web.tar.gz`（模板 + 静态资源）。
+支持平台：Linux (amd64/arm64)、macOS (amd64/arm64)。自 v0.4.0 起，前端资源已嵌入二进制，下载即用，无需额外文件。
 
 ## 🚀 快速开始
 
@@ -102,7 +102,14 @@ make restart      # 重启
 make run          # 前台运行（调试用）
 ```
 
-### 3. 使用 CLI
+### 3. 查看版本
+
+```bash
+linkstash-server --version    # 查看服务端版本
+linkstash --version           # 查看 CLI 版本
+```
+
+### 4. 使用 CLI
 
 ```bash
 export LINKSTASH_SERVER=http://localhost:8080
@@ -317,6 +324,7 @@ linkstash/
 │       ├── config/                 # YAML 配置加载
 │       └── logger/                 # slog 日志
 ├── web/
+│   ├── embed.go                      # go:embed 静态资源嵌入
 │   ├── templates/spa.html             # SPA 入口 HTML
 │   ├── src/js/                        # Preact SPA 源码
 │   │   ├── app.jsx                    # 入口（Router + Layout）
@@ -344,7 +352,7 @@ git tag v0.2.3 -m "Release description"
 git push origin v0.2.3
 ```
 
-GitHub Actions 自动：交叉编译 8 个二进制 + 构建前端 + 打包 `web.tar.gz` + 创建 Release。
+GitHub Actions 自动：构建前端 → 嵌入资源 → 交叉编译 8 个二进制 → 创建 Release。
 
 ## License
 

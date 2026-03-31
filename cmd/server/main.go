@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -24,10 +25,18 @@ import (
 
 // Version is set by ldflags at build time.
 var Version = "dev"
+var BuildTime = ""
+var GitCommit = ""
 
 func main() {
+	showVersion := flag.Bool("version", false, "print version and exit")
 	confPath := flag.String("conf", "conf/app_dev.yaml", "config file path")
 	flag.Parse()
+
+	if *showVersion {
+		printVersion()
+		os.Exit(0)
+	}
 
 	// Set version for DI layer
 	di.AppVersion = Version
@@ -162,4 +171,12 @@ func staticCacheMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func printVersion() {
+	fmt.Printf("linkstash-server %s (%s)\n", Version, GitCommit)
+	if BuildTime != "" {
+		fmt.Printf("Build: %s\n", BuildTime)
+	}
+	fmt.Printf("Go:    %s\n", runtime.Version())
 }
