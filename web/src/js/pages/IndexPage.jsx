@@ -28,10 +28,11 @@ export function IndexPage() {
     if (!isAuthenticated.value) {
       route('/login', true);
     }
-  }, []);
+  }, [isAuthenticated.value]);
 
   // Fetch categories from config API
   useEffect(() => {
+    if (!isAuthenticated.value) return;
     configApi.categories().then(data => {
       setCategories(data.categories || []);
     }).catch(err => {
@@ -103,9 +104,10 @@ export function IndexPage() {
 
   // Load on mount and filter changes
   useEffect(() => {
+    if (!isAuthenticated.value) return;
     setPage(1);
     fetchData(1, false);
-  }, [query, searchType, category, sort, size, minScore, isShortURL]);
+  }, [isAuthenticated.value, query, searchType, category, sort, size, minScore, isShortURL]);
 
   // Load more on page change (page > 1)
   useEffect(() => {

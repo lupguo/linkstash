@@ -33,11 +33,10 @@ export async function api(path, options = {}) {
   const res = await fetch(path, { ...options, headers });
 
   if (res.status === 401) {
-    // Clear invalid token to break login redirect loop
+    // Clear invalid token; component-level auth guards handle the redirect
     document.cookie = 'linkstash_token=;path=/;max-age=0';
     auth.value = { token: null };
-    route('/login', true);
-    throw new Error('Unauthorized — redirecting to login');
+    throw new Error('Unauthorized');
   }
 
   if (res.status === 204) {
