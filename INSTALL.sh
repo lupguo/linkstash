@@ -105,7 +105,7 @@ else
     info "  Created user '${SERVICE_USER}'."
 fi
 
-mkdir -p "${INSTALL_DIR}"/{bin,conf,data,logs,web}
+mkdir -p "${INSTALL_DIR}"/{bin,conf,data,logs}
 info "  Directories ready: ${INSTALL_DIR}/{bin,conf,data,logs,web}"
 
 # ============================================================
@@ -126,12 +126,7 @@ rm -f "${INSTALL_DIR}/bin/linkstash"
 curl --http1.1 -fsSL "${BASE_URL}/linkstash-linux-${ARCH}" -o "${INSTALL_DIR}/bin/linkstash"
 chmod +x "${INSTALL_DIR}/bin/linkstash"
 
-info "  Downloading web resources..."
-curl --http1.1 -fsSL "${BASE_URL}/web.tar.gz" -o /tmp/linkstash-web.tar.gz
-tar -xzf /tmp/linkstash-web.tar.gz -C "${INSTALL_DIR}/web/"
-rm -f /tmp/linkstash-web.tar.gz
-
-info "  Binaries and web resources installed."
+info "  Binaries installed (web assets embedded in binary since v0.4.0)."
 
 # ============================================================
 # [4/6] Generate configuration
