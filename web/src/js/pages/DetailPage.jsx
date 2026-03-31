@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 import { route } from 'preact-router';
-import { isAuthenticated } from '../store.js';
+import { isAuthenticated, urlListVersion } from '../store.js';
 import { urlApi, shortApi, configApi } from '../api.js';
 import { ColorPicker } from '../components/ColorPicker.jsx';
 import { ConfirmModal } from '../components/ConfirmModal.jsx';
@@ -170,7 +170,8 @@ export function DetailPage({ id }) {
         showMessage('URL updated successfully');
         setEditing(false);
         await loadUrl();
-        window.dispatchEvent(new Event('linkstash:url-updated'));
+        // Signal IndexPage to refetch when user navigates back
+        urlListVersion.value++;
       }
     } catch (err) {
       showMessage('Save failed: ' + err.message, 'error');

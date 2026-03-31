@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
 import { route } from 'preact-router';
-import { isAuthenticated } from '../store.js';
+import { isAuthenticated, urlListVersion } from '../store.js';
 import { urlApi, searchApi, configApi } from '../api.js';
 import { URLCard } from '../components/URLCard.jsx';
 import { SearchBar } from '../components/SearchBar.jsx';
@@ -96,26 +96,12 @@ export function IndexPage() {
     }
   }, [query, searchType, category, sort, size, minScore, isShortURL]);
 
-  // Load on mount and filter changes
+  // Load on mount, filter changes, or after URL updates from DetailPage
   useEffect(() => {
     if (!isAuthenticated.value) return;
     setPage(1);
     fetchData(1, false);
-  }, [isAuthenticated.value, query, searchType, category, sort, size, minScore, isShortURL]);
-
-  // Refetch when navigating back (e.g. after editing a URL)
-  // preact-router re-renders but doesn't remount, so listen for route changes
-  useEffect(() => {
-    function handleRouteChange() {
-      if (isAuthenticated.value && window.location.pathname === '/') {
-        setPage(1);
-        fetchData(1, false);
-      }
-    }
-    // Custom event emitted after URL save in DetailPage
-    window.addEventListener('linkstash:url-updated', handleRouteChange);
-    return () => window.removeEventListener('linkstash:url-updated', handleRouteChange);
-  }, [fetchData]);
+  }, [isAuthenticated.value, query, searchType, category, sort, size, minScore, isShortURL, urlListVersion.value]);
 
   // Load more on page change (page > 1)
   useEffect(() => {

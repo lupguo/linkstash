@@ -16,3 +16,6 @@ function getValidToken() {
 
 export const auth = signal({ token: getValidToken() });
 export const isAuthenticated = computed(() => !!auth.value.token);
+
+// Incremented when a URL is created/updated/deleted — triggers list refetch
+export const urlListVersion = signal(0);
