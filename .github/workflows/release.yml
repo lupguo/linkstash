@@ -16,11 +16,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build frontend assets (needed for go:embed)
+        run: |
+          npm ci
+          npx @tailwindcss/cli -i web/src/css/app.css -o web/static/css/app.css --minify
+          npx esbuild web/src/js/app.jsx --bundle --minify --outfile=web/static/js/app.js --jsx=automatic --jsx-import-source=preact
+
       - uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
 
-      - name: Build release binaries
+      - name: Build release binaries (assets embedded via go:embed)
         run: |
           VERSION=${GITHUB_REF_NAME}
           BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
@@ -44,19 +55,6 @@ jobs:
           done
 
           ls -lh dist/
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build frontend and package web resources
-        run: |
-          npm ci
-          npx @tailwindcss/cli -i web/src/css/app.css -o web/static/css/app.css --minify
-          npx esbuild web/src/js/app.jsx --bundle --minify --outfile=web/static/js/app.js --jsx=automatic --jsx-import-source=preact
-
-          tar -czf dist/web.tar.gz -C web templates static
 
       - name: Generate checksums
         run: |
