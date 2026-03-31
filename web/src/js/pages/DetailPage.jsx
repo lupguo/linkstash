@@ -35,14 +35,12 @@ export function DetailPage({ id }) {
   const [categories, setCategories] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Auth guard
   useEffect(() => {
     if (!isAuthenticated.value) {
       route('/login', true);
     }
   }, []);
 
-  // Check for ?edit query param
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -52,7 +50,6 @@ export function DetailPage({ id }) {
     }
   }, []);
 
-  // Fetch categories from config API
   useEffect(() => {
     configApi.categories().then(data => {
       setCategories(data.categories || []);
@@ -61,7 +58,6 @@ export function DetailPage({ id }) {
     });
   }, []);
 
-  // Load URL data
   useEffect(() => {
     if (!isNew && id) {
       loadUrl();
@@ -113,11 +109,9 @@ export function DetailPage({ id }) {
     setSaving(true);
     try {
       if (isNew) {
-        // Create flow: POST with link, then PUT with extra fields
         const created = await urlApi.create({ link: form.link });
-        const newId = created.ID || created.id;
+        const newId = created.id;
 
-        // Update with extra fields
         await urlApi.update(newId, {
           title: form.title,
           description: form.description,
@@ -129,7 +123,6 @@ export function DetailPage({ id }) {
           icon: form.icon,
         });
 
-        // Create short link if enabled
         if (enableShortCode && form.short_code) {
           try {
             await shortApi.create({
@@ -145,7 +138,6 @@ export function DetailPage({ id }) {
         showMessage('URL created successfully');
         route(`/urls/${newId}`);
       } else {
-        // Edit flow
         await urlApi.update(id, {
           link: form.link,
           title: form.title,
@@ -159,7 +151,6 @@ export function DetailPage({ id }) {
           icon: form.icon,
         });
 
-        // Create short link if newly enabled and has code
         if (enableShortCode && form.short_code && (!urlData || !urlData.short_code)) {
           try {
             await shortApi.create({
@@ -216,25 +207,17 @@ export function DetailPage({ id }) {
 
   return (
     <div class="max-w-3xl mx-auto">
-      {/* Terminal prompt header */}
-      <div class="text-terminal-green font-mono text-sm mb-4 opacity-70">
-        <span class="text-terminal-cyan">user@linkstash</span>
-        <span class="text-terminal-gray">:</span>
-        <span class="text-terminal-green">~</span>
-        <span class="text-terminal-gray">$</span>
-        {' '}{isNew ? 'touch /urls/new' : `cat /urls/${id}`}
-      </div>
-
       {/* Back link */}
-      <a href="/" class="text-terminal-gray hover:text-terminal-green text-sm mb-4 inline-block no-underline">
-        ← cd /urls
+      <a href="/" class="text-text-muted hover:text-accent text-sm mb-4 inline-flex items-center gap-1 no-underline transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7" /></svg>
+        Back to list
       </a>
 
-      <div class="terminal-card rounded-lg p-6">
+      <div class="surface-card rounded-lg p-6">
         <div class="flex items-center justify-between mb-6">
           <div class="flex items-center gap-3">
-            <h1 class="text-terminal-green text-xl font-mono">
-              {isNew ? '> NEW URL' : `> URL #${id}`}
+            <h1 class="text-text-primary text-xl font-semibold">
+              {isNew ? 'New URL' : (urlData?.title || `URL #${id}`)}
             </h1>
             {!isNew && urlData && urlData.status && (
               <span class={`${statusBadge} text-xs border px-2 py-0.5 rounded`}>
@@ -245,14 +228,14 @@ export function DetailPage({ id }) {
           {!isNew && (
             <div class="flex items-center gap-2">
               {!editing && (
-                <button onClick={() => setEditing(true)} class="terminal-btn text-xs px-3 py-1">
+                <button onClick={() => setEditing(true)} class="btn text-sm px-3 py-1.5">
                   Edit
                 </button>
               )}
-              <button onClick={handleReanalyze} class="terminal-btn text-xs px-3 py-1" disabled={reanalyzing}>
+              <button onClick={handleReanalyze} class="btn text-sm px-3 py-1.5" disabled={reanalyzing}>
                 {reanalyzing ? 'Analyzing...' : 'Reanalyze'}
               </button>
-              <button onClick={handleDelete} class="terminal-btn terminal-btn-danger text-xs px-3 py-1">
+              <button onClick={handleDelete} class="btn btn-danger text-sm px-3 py-1.5">
                 Delete
               </button>
             </div>
@@ -261,70 +244,37 @@ export function DetailPage({ id }) {
 
         {/* Message */}
         {message && (
-          <div class={`text-sm mb-4 p-2 rounded border ${messageType === 'error' ? 'text-terminal-red border-terminal-red' : 'text-terminal-green border-terminal-green'}`}>
+          <div class={`text-sm mb-4 p-2.5 rounded border ${messageType === 'error' ? 'text-red-400 border-red-400/30 bg-red-400/5' : 'text-accent border-accent/30 bg-accent/5'}`}>
             {message}
           </div>
         )}
 
         {editing ? (
           <form onSubmit={handleSubmit} class="space-y-4">
-            {/* Link */}
             <div>
-              <label class="block text-terminal-gray text-sm mb-1">Link *</label>
-              <input
-                type="url"
-                class="terminal-input w-full"
-                value={form.link}
-                onInput={(e) => updateField('link', e.target.value)}
-                placeholder="https://example.com"
-                required
-              />
+              <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Link *</label>
+              <input type="url" class="input w-full" value={form.link} onInput={(e) => updateField('link', e.target.value)} placeholder="https://example.com" required />
             </div>
 
-            {/* Title */}
             <div>
-              <label class="block text-terminal-gray text-sm mb-1">Title</label>
-              <input
-                type="text"
-                class="terminal-input w-full"
-                value={form.title}
-                onInput={(e) => updateField('title', e.target.value)}
-                placeholder="Page title"
-              />
+              <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Title</label>
+              <input type="text" class="input w-full" value={form.title} onInput={(e) => updateField('title', e.target.value)} placeholder="Page title" />
             </div>
 
-            {/* Description */}
             <div>
-              <label class="block text-terminal-gray text-sm mb-1">Description</label>
-              <textarea
-                class="terminal-input w-full h-24 resize-y"
-                value={form.description}
-                onInput={(e) => updateField('description', e.target.value)}
-                placeholder="Description"
-              />
+              <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Description</label>
+              <textarea class="input w-full h-24 resize-y" value={form.description} onInput={(e) => updateField('description', e.target.value)} placeholder="Description" />
             </div>
 
-            {/* Keywords */}
             <div>
-              <label class="block text-terminal-gray text-sm mb-1">Keywords</label>
-              <input
-                type="text"
-                class="terminal-input w-full"
-                value={form.keywords}
-                onInput={(e) => updateField('keywords', e.target.value)}
-                placeholder="keyword1, keyword2, keyword3"
-              />
+              <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Keywords</label>
+              <input type="text" class="input w-full" value={form.keywords} onInput={(e) => updateField('keywords', e.target.value)} placeholder="keyword1, keyword2, keyword3" />
             </div>
 
-            {/* Category + Tags */}
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-terminal-gray text-sm mb-1">Category</label>
-                <select
-                  class="terminal-input w-full"
-                  value={form.category}
-                  onChange={(e) => updateField('category', e.target.value)}
-                >
+                <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Category</label>
+                <select class="input w-full" value={form.category} onChange={(e) => updateField('category', e.target.value)}>
                   <option value="">Select...</option>
                   {categories.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -335,218 +285,159 @@ export function DetailPage({ id }) {
                 </select>
               </div>
               <div>
-                <label class="block text-terminal-gray text-sm mb-1">Tags</label>
-                <input
-                  type="text"
-                  class="terminal-input w-full"
-                  value={form.tags}
-                  onInput={(e) => updateField('tags', e.target.value)}
-                  placeholder="tag1, tag2"
-                />
+                <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Tags</label>
+                <input type="text" class="input w-full" value={form.tags} onInput={(e) => updateField('tags', e.target.value)} placeholder="tag1, tag2" />
               </div>
             </div>
 
-            {/* Weight + Visit Count */}
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-terminal-gray text-sm mb-1">Manual Weight</label>
-                <input
-                  type="number"
-                  class="terminal-input w-full"
-                  value={form.manual_weight}
-                  onInput={(e) => updateField('manual_weight', e.target.value)}
-                />
+                <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Manual Weight</label>
+                <input type="number" class="input w-full" value={form.manual_weight} onInput={(e) => updateField('manual_weight', e.target.value)} />
               </div>
               <div>
-                <label class="block text-terminal-gray text-sm mb-1">Visit Count</label>
-                <input
-                  type="number"
-                  class="terminal-input w-full"
-                  value={form.visit_count}
-                  onInput={(e) => updateField('visit_count', e.target.value)}
-                  disabled={isNew}
-                />
+                <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Visit Count</label>
+                <input type="number" class="input w-full" value={form.visit_count} onInput={(e) => updateField('visit_count', e.target.value)} disabled={isNew} />
               </div>
             </div>
 
-            {/* Color */}
             <div>
-              <label class="block text-terminal-gray text-sm mb-1">Color</label>
+              <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Color</label>
               <ColorPicker value={form.color} onChange={(c) => updateField('color', c)} />
             </div>
 
-            {/* Icon */}
             <div>
-              <label class="block text-terminal-gray text-sm mb-1">Icon</label>
-              <input
-                type="text"
-                class="terminal-input w-full"
-                value={form.icon}
-                onInput={(e) => updateField('icon', e.target.value)}
-                placeholder="Icon URL or emoji"
-              />
+              <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Icon</label>
+              <input type="text" class="input w-full" value={form.icon} onInput={(e) => updateField('icon', e.target.value)} placeholder="Icon URL or emoji" />
             </div>
 
-            {/* Short Code */}
             <div>
-              <label class="flex items-center gap-2 text-terminal-gray text-sm mb-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={enableShortCode}
-                  onChange={(e) => setEnableShortCode(e.target.checked)}
-                />
+              <label class="flex items-center gap-2 text-text-secondary text-sm mb-1 cursor-pointer">
+                <input type="checkbox" checked={enableShortCode} onChange={(e) => setEnableShortCode(e.target.checked)} class="accent-sky-400" />
                 Enable Short Link
               </label>
               {enableShortCode && (
                 <div class="grid grid-cols-2 gap-4 mt-2">
                   <div>
-                    <label class="block text-terminal-gray text-xs mb-1">Short Code</label>
-                    <input
-                      type="text"
-                      class="terminal-input w-full"
-                      value={form.short_code}
-                      onInput={(e) => updateField('short_code', e.target.value)}
-                      placeholder="custom-code"
-                    />
+                    <label class="block text-text-muted text-xs mb-1">Short Code</label>
+                    <input type="text" class="input w-full" value={form.short_code} onInput={(e) => updateField('short_code', e.target.value)} placeholder="custom-code" />
                   </div>
                   <div>
-                    <label class="block text-terminal-gray text-xs mb-1">有效期</label>
-                    <select
-                      class="terminal-input w-full"
-                      value={form.ttl}
-                      onChange={(e) => updateField('ttl', Number(e.target.value))}
-                    >
-                      <option value={0}>永久</option>
-                      <option value={86400}>1 天</option>
-                      <option value={604800}>7 天</option>
-                      <option value={2592000}>30 天</option>
-                      <option value={7776000}>90 天</option>
-                      <option value={31536000}>1 年</option>
+                    <label class="block text-text-muted text-xs mb-1">TTL</label>
+                    <select class="input w-full" value={form.ttl} onChange={(e) => updateField('ttl', Number(e.target.value))}>
+                      <option value={0}>Permanent</option>
+                      <option value={86400}>1 day</option>
+                      <option value={604800}>7 days</option>
+                      <option value={2592000}>30 days</option>
+                      <option value={7776000}>90 days</option>
+                      <option value={31536000}>1 year</option>
                     </select>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Actions */}
-            <div class="flex items-center gap-3 pt-4 border-t border-terminal-border">
-              <button type="submit" class="terminal-btn text-xs px-4 py-1.5" disabled={saving}>
-                {saving ? '> SAVING...' : isNew ? '> CREATE' : '> SAVE'}
+            <div class="flex items-center gap-3 pt-4 border-t border-border-hi">
+              <button type="submit" class="btn btn-primary text-sm px-4 py-2" disabled={saving}>
+                {saving ? 'Saving...' : isNew ? 'Create' : 'Save'}
               </button>
               {!isNew && (
-                <button
-                  type="button"
-                  class="terminal-btn terminal-btn-danger text-xs px-4 py-1.5"
-                  onClick={() => { setEditing(false); loadUrl(); }}
-                >
+                <button type="button" class="btn text-sm px-4 py-2" onClick={() => { setEditing(false); loadUrl(); }}>
                   Cancel
                 </button>
               )}
             </div>
           </form>
         ) : (
-          /* View mode */
           urlData && (
             <div class="space-y-4">
-              {/* Title + Link */}
               <div>
-                <h2 class="text-lg text-terminal-green mb-1">{urlData.title || 'Untitled'}</h2>
-                <a
-                  href={urlData.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-terminal-cyan text-sm hover:underline break-all"
-                >
+                <h2 class="text-lg text-text-primary font-medium mb-1">{urlData.title || 'Untitled'}</h2>
+                <a href={urlData.link} target="_blank" rel="noopener noreferrer" class="text-accent text-sm font-mono hover:underline break-all">
                   {urlData.link}
                 </a>
               </div>
 
-              {/* Description */}
               {urlData.description && (
                 <div>
-                  <label class="text-terminal-gray text-xs">Description</label>
-                  <p class="text-sm text-gray-300 mt-1">{urlData.description}</p>
+                  <label class="text-text-muted text-xs font-medium uppercase tracking-wider">Description</label>
+                  <p class="text-sm text-text-secondary mt-1">{urlData.description}</p>
                 </div>
               )}
 
-              {/* Keywords */}
               {urlData.keywords && (
                 <div>
-                  <label class="text-terminal-gray text-xs">Keywords</label>
-                  <p class="text-sm text-gray-300 mt-1">{urlData.keywords}</p>
+                  <label class="text-text-muted text-xs font-medium uppercase tracking-wider">Keywords</label>
+                  <p class="text-sm text-text-secondary mt-1">{urlData.keywords}</p>
                 </div>
               )}
 
-              {/* Category + Tags */}
               <div class="flex gap-4">
                 {urlData.category && (
                   <div>
-                    <label class="text-terminal-gray text-xs">Category</label>
-                    <p class="text-sm text-terminal-cyan mt-1">{urlData.category}</p>
+                    <label class="text-text-muted text-xs font-medium uppercase tracking-wider">Category</label>
+                    <p class="text-sm text-accent mt-1">{urlData.category}</p>
                   </div>
                 )}
                 {urlData.tags && (
                   <div>
-                    <label class="text-terminal-gray text-xs">Tags</label>
-                    <p class="text-sm text-gray-300 mt-1">{urlData.tags}</p>
+                    <label class="text-text-muted text-xs font-medium uppercase tracking-wider">Tags</label>
+                    <p class="text-sm text-text-secondary mt-1">{urlData.tags}</p>
                   </div>
                 )}
               </div>
 
-              {/* Short Link */}
               {urlData.short_code && (
                 <div>
-                  <label class="text-terminal-gray text-xs">Short Link</label>
-                  <p class="text-sm text-terminal-cyan mt-1">
-                    <a href={`/s/${urlData.short_code}`} class="hover:underline">/s/{urlData.short_code}</a>
+                  <label class="text-text-muted text-xs font-medium uppercase tracking-wider">Short Link</label>
+                  <p class="text-sm text-accent mt-1">
+                    <a href={`/s/${urlData.short_code}`} class="hover:underline font-mono">/s/{urlData.short_code}</a>
                   </p>
                 </div>
               )}
 
-              {/* Metadata */}
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t border-terminal-border text-xs">
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t border-border-hi text-xs">
                 <div>
-                  <span class="text-terminal-gray">Manual Weight</span>
-                  <p class="text-terminal-green">{urlData.manual_weight || 0}</p>
+                  <span class="text-text-muted font-medium uppercase tracking-wider">Manual Weight</span>
+                  <p class="text-text-primary mt-0.5">{urlData.manual_weight || 0}</p>
                 </div>
                 <div>
-                  <span class="text-terminal-gray">Auto Weight</span>
-                  <p class="text-terminal-green">{urlData.auto_weight || 0}</p>
+                  <span class="text-text-muted font-medium uppercase tracking-wider">Auto Weight</span>
+                  <p class="text-text-primary mt-0.5">{urlData.auto_weight || 0}</p>
                 </div>
                 <div>
-                  <span class="text-terminal-gray">Visits</span>
-                  <p class="text-terminal-green">{urlData.visit_count || 0}</p>
+                  <span class="text-text-muted font-medium uppercase tracking-wider">Visits</span>
+                  <p class="text-text-primary mt-0.5">{urlData.visit_count || 0}</p>
                 </div>
                 <div>
-                  <span class="text-terminal-gray">Color</span>
-                  <p class="text-terminal-green">{urlData.color || 'default'}</p>
+                  <span class="text-text-muted font-medium uppercase tracking-wider">Color</span>
+                  <p class="text-text-primary mt-0.5">{urlData.color || 'default'}</p>
                 </div>
                 <div>
-                  <span class="text-terminal-gray">Created</span>
-                  <p class="text-terminal-green">{urlData.CreatedAt ? new Date(urlData.CreatedAt).toLocaleDateString() : '-'}</p>
+                  <span class="text-text-muted font-medium uppercase tracking-wider">Created</span>
+                  <p class="text-text-primary mt-0.5">{urlData.created_at ? new Date(urlData.created_at).toLocaleDateString() : '-'}</p>
                 </div>
                 <div>
-                  <span class="text-terminal-gray">Updated</span>
-                  <p class="text-terminal-green">{urlData.UpdatedAt ? new Date(urlData.UpdatedAt).toLocaleDateString() : '-'}</p>
+                  <span class="text-text-muted font-medium uppercase tracking-wider">Updated</span>
+                  <p class="text-text-primary mt-0.5">{urlData.updated_at ? new Date(urlData.updated_at).toLocaleDateString() : '-'}</p>
                 </div>
                 <div>
-                  <span class="text-terminal-gray">Last Visit</span>
-                  <p class="text-terminal-green">{urlData.last_visit_at ? new Date(urlData.last_visit_at).toLocaleDateString() : '-'}</p>
+                  <span class="text-text-muted font-medium uppercase tracking-wider">Last Visit</span>
+                  <p class="text-text-primary mt-0.5">{urlData.last_visit_at ? new Date(urlData.last_visit_at).toLocaleDateString() : '-'}</p>
                 </div>
                 <div>
-                  <span class="text-terminal-gray">Status</span>
-                  <p class={`badge-${urlData.status}`}>{urlData.status || '-'}</p>
+                  <span class="text-text-muted font-medium uppercase tracking-wider">Status</span>
+                  <p class={`badge-${urlData.status} mt-0.5`}>{urlData.status || '-'}</p>
                 </div>
               </div>
             </div>
           )
         )}
       </div>
-      {/* Delete confirmation modal */}
       <ConfirmModal
         open={showDeleteModal}
-        title="确认删除"
-        message="确定要删除这个 URL 吗？此操作无法撤销。"
+        title="Confirm Delete"
+        message="Are you sure you want to delete this URL? This action cannot be undone."
         confirmText="Delete"
         cancelText="Cancel"
         onConfirm={confirmDelete}

@@ -10,14 +10,14 @@ LinkStash 是一款面向个人的 URL 资源管理工具，支持 URL 收集、
 | **LLM 智能分析**           | 添加 URL 后异步抓取页面（Rod headless Chrome），LLM 自动提取标题、关键词、摘要、分类、标签                  |
 | **混合检索**               | FTS5 关键词检索 + 512 维向量语义检索 + Bleve 全文索引                                        |
 | **短链服务**               | SHA256+Base62 短码生成，302 重定向，支持 TTL 过期（410 Gone）                               |
-| **Terminal 风格 Web UI** | 暗黑极客主题，Preact SPA 单页应用，客户端路由 + JSON API 数据驱动，IntersectionObserver 无限滚动，移动端适配 |
+| **现代深色 Web UI**       | Refined Dark 设计（Slate 色系 + Sky 主色调），Preact SPA，紧凑多列链接网格，可折叠筛选，响应式（1/2/3 列），无限滚动 |
 | **CLI 工具**             | `linkstash add / list / search / short / info` 全命令行操作                        |
 | **PopClip 插件**         | macOS 上选中 URL 一键保存                                                           |
 
 ## 🏗️ 技术栈
 
 ```
-Go · chi · GORM · SQLite (modernc) · Google Wire · Preact · preact-router · @preact/signals · Tailwind CSS · esbuild · Rod · JWT · cobra
+Go · chi · GORM · SQLite (modernc) · Google Wire · Preact · preact-router · @preact/signals · Tailwind CSS v4 · esbuild · Rod · JWT · cobra
 ```
 
 ## 📦 安装

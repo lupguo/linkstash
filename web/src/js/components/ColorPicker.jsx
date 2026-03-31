@@ -19,7 +19,7 @@ export function ColorPicker({ value, onChange }) {
           key={color.name}
           type="button"
           title={color.label}
-          class={`w-6 h-6 rounded-full ${color.css} cursor-pointer transition-all ${value === color.name ? 'ring-2 ring-white scale-110' : 'ring-1 ring-terminal-border hover:ring-terminal-gray'}`}
+          class={`w-6 h-6 rounded-full ${color.css} cursor-pointer transition-all ${value === color.name ? 'ring-2 ring-white scale-110' : 'ring-1 ring-border-hi hover:ring-text-muted'}`}
           onClick={() => onChange(color.name)}
         />
       ))}
