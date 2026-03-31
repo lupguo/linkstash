@@ -28,7 +28,7 @@ function relativeTime(dateStr) {
 
 export function URLCard({ url }) {
   function handleClick() {
-    route(`/urls/${url.ID}`);
+    route(`/urls/${url.id}`);
   }
 
   const colorClass = url.color ? `card-theme-${url.color}` : '';
@@ -74,7 +74,7 @@ export function URLCard({ url }) {
           </span>
         )}
         <span class="text-[11px] text-text-muted flex-shrink-0 tabular-nums">
-          {relativeTime(url.CreatedAt)}
+          {relativeTime(url.created_at)}
         </span>
       </div>
     </div>

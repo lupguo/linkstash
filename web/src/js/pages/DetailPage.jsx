@@ -110,7 +110,7 @@ export function DetailPage({ id }) {
     try {
       if (isNew) {
         const created = await urlApi.create({ link: form.link });
-        const newId = created.ID || created.id;
+        const newId = created.id;
 
         await urlApi.update(newId, {
           title: form.title,
@@ -415,11 +415,11 @@ export function DetailPage({ id }) {
                 </div>
                 <div>
                   <span class="text-text-muted font-medium uppercase tracking-wider">Created</span>
-                  <p class="text-text-primary mt-0.5">{urlData.CreatedAt ? new Date(urlData.CreatedAt).toLocaleDateString() : '-'}</p>
+                  <p class="text-text-primary mt-0.5">{urlData.created_at ? new Date(urlData.created_at).toLocaleDateString() : '-'}</p>
                 </div>
                 <div>
                   <span class="text-text-muted font-medium uppercase tracking-wider">Updated</span>
-                  <p class="text-text-primary mt-0.5">{urlData.UpdatedAt ? new Date(urlData.UpdatedAt).toLocaleDateString() : '-'}</p>
+                  <p class="text-text-primary mt-0.5">{urlData.updated_at ? new Date(urlData.updated_at).toLocaleDateString() : '-'}</p>
                 </div>
                 <div>
                   <span class="text-text-muted font-medium uppercase tracking-wider">Last Visit</span>

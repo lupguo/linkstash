@@ -51,19 +51,24 @@ web/src/js/api.js                → JSON API client (fetch wrapper with JWT aut
 web/src/js/store.js              → Shared state (@preact/signals)
 web/src/js/utils.js              → Utilities (getCookie, copyToClipboard)
 web/src/js/pages/                → Page components (LoginPage, IndexPage, DetailPage)
-web/src/js/components/           → Shared components (Layout, URLCard, SearchBar, ScoreFilter, ColorPicker)
-web/src/css/app.css              → Tailwind entry
+web/src/js/components/           → Shared components (Layout, URLCard, SearchBar, ColorPicker)
+web/src/css/app.css              → Tailwind v4 entry (@import "tailwindcss" + @theme block)
 web/static/                      → Built assets (served at /static/)
 ```
 
 **SPA architecture**: Go server serves `spa.html` for all non-API, non-static routes via `r.NotFound()`. Preact handles client-side routing with `preact-router`. All data flows through JSON APIs (`/api/*`). Auth uses JWT stored in `linkstash_token` cookie.
 
+**Design system**: Refined Dark theme using Slate color palette (bg-primary #0f172a, bg-surface #1e293b) with Sky accent (#38bdf8). Custom design tokens defined in CSS `@theme {}` block. Component classes: `.input`, `.btn`, `.btn-primary`, `.btn-danger`, `.surface-card`, `.link-item`, `.filter-panel`, `.filter-chip`. Card color themes via `.card-theme-*` classes.
+
 **Key frontend patterns**:
+- Compact link grid: responsive 1→2→3 column grid of two-line link items, click navigates to detail
+- Collapsible filters: SearchBar with Filters button, chip-style type/category selectors, active filter count badge
 - Infinite scroll: IntersectionObserver on sentinel div, increments page state
 - Search: fetches `/api/search` with query params, renders client-side
 - ESC key: clears search query, resets filters, returns to default URL list
-- Score filter: client-side min_score slider for hybrid search results
+- Score filter: client-side min_score dropdown for hybrid search results (inside filter panel)
 - State: `@preact/signals` for auth, `useState`/`useEffect` for component state
+- JSON field names: API returns lowercase snake_case (`id`, `created_at`, `auto_weight`), not GORM uppercase
 
 ## API Routes
 
@@ -77,7 +82,7 @@ web/static/                      → Built assets (served at /static/)
 ## Key Conventions
 
 - Go: standard `slog` for logging, `chi` for routing, `gorm` for ORM (SQLite/MySQL)
-- Frontend: Preact SPA with preact-router and @preact/signals; esbuild bundles `web/src/js/app.jsx` → `web/static/js/app.js` (with `--jsx=automatic --jsx-import-source=preact`); Tailwind builds `web/src/css/app.css` → `web/static/css/app.css`
+- Frontend: Preact SPA with preact-router and @preact/signals; esbuild bundles `web/src/js/app.jsx` → `web/static/js/app.js` (with `--jsx=automatic --jsx-import-source=preact`); Tailwind v4 standalone CLI (`tools/tailwindcss`) builds `web/src/css/app.css` → `web/static/css/app.css`; no `tailwind.config.js` (v4 uses `@theme {}` in CSS)
 - npm: `package.json` manages preact deps; `node_modules/` is gitignored; run `npm install` after clone
 - Config: YAML in `conf/`, env vars interpolated with `${VAR}` syntax
 - DI: Google Wire — edit `app/di/wire.go`, run `make wire` to regenerate

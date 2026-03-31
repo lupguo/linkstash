@@ -70,7 +70,7 @@ export function IndexPage() {
         if (sort === 'weight') {
           items.sort((a, b) => ((b.auto_weight || 0) + (b.manual_weight || 0)) - ((a.auto_weight || 0) + (a.manual_weight || 0)));
         } else if (sort === 'latest') {
-          items.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
+          items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         }
         const start = (currentPage - 1) * size;
         const paged = items.slice(start, start + size);
@@ -161,7 +161,7 @@ export function IndexPage() {
   }
 
   function handleDelete(id) {
-    setUrls(prev => prev.filter(u => u.ID !== id));
+    setUrls(prev => prev.filter(u => u.id !== id));
   }
 
   if (!isAuthenticated.value) return null;
@@ -183,7 +183,7 @@ export function IndexPage() {
 
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-1.5 mt-4">
         {urls.map(url => (
-          <URLCard key={url.ID} url={url} onDelete={handleDelete} />
+          <URLCard key={url.id} url={url} onDelete={handleDelete} />
         ))}
       </div>
 
