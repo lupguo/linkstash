@@ -53,30 +53,25 @@ export function IndexPage() {
           q: query,
           type: searchType,
           page: currentPage,
-          size: 100, // fetch more for client-side filtering
+          size: 100,
           min_score: searchType === 'hybrid' ? minScore : undefined,
         });
-        // Search returns { data: [{ url: {...}, score: N }], total, type }
         const rawItems = result.data || [];
-        // Flatten: merge url fields + score at top level
         let items = rawItems.map(item => ({
           ...item.url,
           score: item.score,
         }));
-        // Client-side filters for search results
         if (category) {
           items = items.filter(u => u.category === category);
         }
         if (isShortURL) {
           items = items.filter(u => u.short_code && u.short_code !== '');
         }
-        // Client-side sorting
         if (sort === 'weight') {
           items.sort((a, b) => ((b.auto_weight || 0) + (b.manual_weight || 0)) - ((a.auto_weight || 0) + (a.manual_weight || 0)));
         } else if (sort === 'latest') {
           items.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
         }
-        // Paginate client-side
         const start = (currentPage - 1) * size;
         const paged = items.slice(start, start + size);
         setUrls(prev => append ? [...prev, ...paged] : paged);
@@ -89,7 +84,6 @@ export function IndexPage() {
           category: category || undefined,
           is_shorturl: isShortURL ? 1 : undefined,
         });
-        // List returns { data: [...], total, page, size }
         const items = result.data || [];
         setUrls(prev => append ? [...prev, ...items] : items);
         setHasMore(items.length === size);
@@ -174,15 +168,6 @@ export function IndexPage() {
 
   return (
     <div>
-      {/* Terminal prompt header */}
-      <div class="text-terminal-green font-mono text-sm mb-4 opacity-70">
-        <span class="text-terminal-cyan">user@linkstash</span>
-        <span class="text-terminal-gray">:</span>
-        <span class="text-terminal-green">~</span>
-        <span class="text-terminal-gray">$</span>
-        {' '}ls -la /urls {query && <span class="text-terminal-cyan">| grep "{query}"</span>}
-      </div>
-
       <SearchBar
         query={query}
         searchType={searchType}
@@ -196,22 +181,22 @@ export function IndexPage() {
         onFilterChange={handleFilterChange}
       />
 
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 mt-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-1.5 mt-4">
         {urls.map(url => (
           <URLCard key={url.ID} url={url} onDelete={handleDelete} />
         ))}
       </div>
 
       {loading && (
-        <div class="text-center text-terminal-gray py-8 font-mono">
-          <span class="text-terminal-green">{'>'}</span> Loading<span class="cursor-blink">_</span>
+        <div class="text-center text-text-muted py-8 text-sm">
+          Loading...
         </div>
       )}
 
       {!loading && urls.length === 0 && (
-        <div class="text-center text-terminal-gray py-16 font-mono">
+        <div class="text-center text-text-muted py-16">
           <p class="text-lg mb-2">No URLs found</p>
-          <p class="text-sm">Try adjusting your search or <a href="/urls/new" class="text-terminal-green hover:underline">add a new URL</a></p>
+          <p class="text-sm">Try adjusting your search or <a href="/urls/new" class="text-accent hover:underline">add a new URL</a></p>
         </div>
       )}
 
