@@ -71,7 +71,7 @@ func (r *URLRepoImpl) Delete(id uint) error {
 // List returns a paginated, sorted, and filtered list of URLs together with the total count.
 // sort: "time" orders by created_at DESC; "weight" orders by (auto_weight + manual_weight) DESC.
 // category and tags are optional filters (tags uses LIKE matching).
-func (r *URLRepoImpl) List(page, size int, sort, category, tags string, isShortURL bool) ([]*entity.URL, int64, error) {
+func (r *URLRepoImpl) List(page, size int, sort, category, tags string, isShortURL bool, networkType string) ([]*entity.URL, int64, error) {
 	var urls []*entity.URL
 	var total int64
 
@@ -86,6 +86,9 @@ func (r *URLRepoImpl) List(page, size int, sort, category, tags string, isShortU
 	}
 	if isShortURL {
 		query = query.Where("short_code != '' AND short_code IS NOT NULL")
+	}
+	if networkType != "" {
+		query = query.Where("network_type = ?", networkType)
 	}
 
 	// total count (before pagination)

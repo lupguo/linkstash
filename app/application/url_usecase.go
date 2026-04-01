@@ -38,8 +38,8 @@ func (uc *URLUsecase) DeleteURL(id uint) error {
 }
 
 // ListURLs returns a paginated, sorted, and filtered list of URLs.
-func (uc *URLUsecase) ListURLs(page, size int, sort, category, tags string, isShortURL bool) ([]*entity.URL, int64, error) {
-	return uc.urlService.ListURLs(page, size, sort, category, tags, isShortURL)
+func (uc *URLUsecase) ListURLs(page, size int, sort, category, tags string, isShortURL bool, networkType string) ([]*entity.URL, int64, error) {
+	return uc.urlService.ListURLs(page, size, sort, category, tags, isShortURL, networkType)
 }
 
 // RecordVisit increments the visit counter for the URL.

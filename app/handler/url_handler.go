@@ -116,8 +116,9 @@ func (h *URLHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 	category := q.Get("category")
 	tags := q.Get("tags")
 	isShortURL := q.Get("is_shorturl") == "1"
+	networkType := q.Get("network_type")
 
-	urls, total, err := h.usecase.ListURLs(page, size, sort, category, tags, isShortURL)
+	urls, total, err := h.usecase.ListURLs(page, size, sort, category, tags, isShortURL, networkType)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
@@ -212,6 +213,9 @@ func (h *URLHandler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 	if v, ok := updates["status"]; ok {
 		existing.Status = v.(string)
 	}
+	if v, ok := updates["network_type"]; ok {
+		existing.NetworkType = v.(string)
+	}
 	if v, ok := updates["favicon"]; ok {
 		existing.Favicon = v.(string)
 	}
@@ -290,6 +294,7 @@ func (h *URLHandler) HandleReanalyze(w http.ResponseWriter, r *http.Request) {
 	existing.Description = ""
 	existing.Category = ""
 	existing.Tags = ""
+	existing.NetworkType = "unknown"
 
 	if err := h.usecase.UpdateURL(existing); err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())

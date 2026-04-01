@@ -74,8 +74,8 @@ func (s *URLService) DeleteURL(id uint) error {
 }
 
 // ListURLs returns a paginated, sorted, and filtered list of URLs and total count.
-func (s *URLService) ListURLs(page, size int, sort, category, tags string, isShortURL bool) ([]*entity.URL, int64, error) {
-	return s.urlRepo.List(page, size, sort, category, tags, isShortURL)
+func (s *URLService) ListURLs(page, size int, sort, category, tags string, isShortURL bool, networkType string) ([]*entity.URL, int64, error) {
+	return s.urlRepo.List(page, size, sort, category, tags, isShortURL, networkType)
 }
 
 // RecordVisit increments the visit counter for the URL with the given ID.
