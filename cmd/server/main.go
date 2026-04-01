@@ -81,6 +81,10 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string][]string{"categories": app.Config.Categories})
 	})
+	r.Get("/api/config/network-types", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"network_types": app.Config.NetworkTypes})
+	})
 
 	// Static files with cache headers (embedded)
 	staticSub, _ := fs.Sub(web.StaticFS, "static")
