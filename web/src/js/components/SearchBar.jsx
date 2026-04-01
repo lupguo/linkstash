@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 
-export function SearchBar({ query, searchType, category, sort, size, isShortURL, minScore, categories, onSearch, onFilterChange }) {
+export function SearchBar({ query, searchType, category, networkType, sort, size, isShortURL, minScore, categories, networkTypes, onSearch, onFilterChange }) {
   const [localQuery, setLocalQuery] = useState(query || '');
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -22,6 +22,7 @@ export function SearchBar({ query, searchType, category, sort, size, isShortURL,
     onSearch('', 'keyword');
     onFilterChange({
       category: '',
+      networkType: '',
       sort: 'weight',
       size: 100,
       isShortURL: false,
@@ -34,6 +35,7 @@ export function SearchBar({ query, searchType, category, sort, size, isShortURL,
   const activeFilterCount = [
     searchType !== 'keyword',
     category !== '',
+    networkType !== '',
     sort !== 'weight',
     size !== 100,
     isShortURL,
@@ -122,6 +124,30 @@ export function SearchBar({ query, searchType, category, sort, size, isShortURL,
                   onClick={() => onFilterChange({ category: cat })}
                 >
                   {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Network type chips */}
+          <div class="mb-3">
+            <span class="text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5 block">Network</span>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                class={`filter-chip ${networkType === '' ? 'active' : ''}`}
+                onClick={() => onFilterChange({ networkType: '' })}
+              >
+                全部
+              </button>
+              {(networkTypes || []).map(nt => (
+                <button
+                  key={nt.key}
+                  type="button"
+                  class={`filter-chip ${networkType === nt.key ? 'active' : ''}`}
+                  onClick={() => onFilterChange({ networkType: nt.key })}
+                >
+                  {nt.label}
                 </button>
               ))}
             </div>

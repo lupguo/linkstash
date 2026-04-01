@@ -19,6 +19,8 @@ export function IndexPage() {
   const [minScore, setMinScore] = useState(0.6);
   const [isShortURL, setIsShortURL] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [networkTypes, setNetworkTypes] = useState([]);
+  const [networkType, setNetworkType] = useState('');
 
   const sentinelRef = useRef(null);
   const loadingRef = useRef(false);
@@ -37,6 +39,16 @@ export function IndexPage() {
       setCategories(data.categories || []);
     }).catch(err => {
       console.error('Failed to load categories:', err);
+    });
+  }, []);
+
+  // Fetch network types from config API
+  useEffect(() => {
+    if (!isAuthenticated.value) return;
+    configApi.networkTypes().then(data => {
+      setNetworkTypes(data.network_types || []);
+    }).catch(err => {
+      console.error('Failed to load network types:', err);
     });
   }, []);
 
@@ -67,6 +79,9 @@ export function IndexPage() {
         if (isShortURL) {
           items = items.filter(u => u.short_code && u.short_code !== '');
         }
+        if (networkType) {
+          items = items.filter(u => u.network_type === networkType);
+        }
         if (sort === 'weight') {
           items.sort((a, b) => ((b.auto_weight || 0) + (b.manual_weight || 0)) - ((a.auto_weight || 0) + (a.manual_weight || 0)));
         } else if (sort === 'latest') {
@@ -82,6 +97,7 @@ export function IndexPage() {
           size,
           sort,
           category: category || undefined,
+          network_type: networkType || undefined,
           is_shorturl: isShortURL ? 1 : undefined,
         });
         const items = result.data || [];
@@ -94,14 +110,14 @@ export function IndexPage() {
       setLoading(false);
       loadingRef.current = false;
     }
-  }, [query, searchType, category, sort, size, minScore, isShortURL]);
+  }, [query, searchType, category, sort, size, minScore, isShortURL, networkType]);
 
   // Load on mount, filter changes, or after URL updates from DetailPage
   useEffect(() => {
     if (!isAuthenticated.value) return;
     setPage(1);
     fetchData(1, false);
-  }, [isAuthenticated.value, query, searchType, category, sort, size, minScore, isShortURL, urlListVersion.value]);
+  }, [isAuthenticated.value, query, searchType, category, sort, size, minScore, isShortURL, networkType, urlListVersion.value]);
 
   // Load more on page change (page > 1)
   useEffect(() => {
@@ -137,6 +153,7 @@ export function IndexPage() {
         setSort('weight');
         setSize(100);
         setIsShortURL(false);
+        setNetworkType('');
         setMinScore(0.6);
         setSearchType('keyword');
         setPage(1);
@@ -153,6 +170,7 @@ export function IndexPage() {
 
   function handleFilterChange(filters) {
     if (filters.category !== undefined) setCategory(filters.category);
+    if (filters.networkType !== undefined) setNetworkType(filters.networkType);
     if (filters.sort !== undefined) setSort(filters.sort);
     if (filters.size !== undefined) setSize(filters.size);
     if (filters.isShortURL !== undefined) setIsShortURL(filters.isShortURL);
@@ -172,11 +190,13 @@ export function IndexPage() {
         query={query}
         searchType={searchType}
         category={category}
+        networkType={networkType}
         sort={sort}
         size={size}
         isShortURL={isShortURL}
         minScore={minScore}
         categories={categories}
+        networkTypes={networkTypes}
         onSearch={handleSearch}
         onFilterChange={handleFilterChange}
       />
