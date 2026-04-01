@@ -79,6 +79,17 @@ categories:
 #   http_proxy: "http://127.0.0.1:8118"       # HTTP/HTTPS proxy
 #   http_proxy: "socks5h://127.0.0.1:1080"    # SOCKS5 proxy (with remote DNS)
 
+fetcher:
+  strategies: ["http"]
+  http:
+    timeout_sec: 15
+    max_content: 51200
+    user_agent: "LinkStash/1.0 (+https://github.com/lupguo/linkstash)"
+  browser:
+    timeout_sec: 30
+    max_content: 51200
+    lifecycle: "on-demand"
+
 browser:
   enabled: true
   # bin_path: "/usr/bin/chromium-browser"  # 留空自动下载

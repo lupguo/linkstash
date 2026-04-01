@@ -18,6 +18,7 @@ type Config struct {
 	Short      ShortConfig    `yaml:"short"`
 	Categories []string       `yaml:"categories"`
 	Proxy      ProxyConfig    `yaml:"proxy"`
+	Fetcher    FetcherConfig  `yaml:"fetcher"`
 	Browser    BrowserConfig  `yaml:"browser"`
 }
 
@@ -27,6 +28,27 @@ type BrowserConfig struct {
 	BinPath    string `yaml:"bin_path"`    // Chromium binary path (empty = auto download)
 	Headless   *bool  `yaml:"headless"`    // Headless mode (default true)
 	TimeoutSec int    `yaml:"timeout_sec"` // Page timeout in seconds (default 30)
+}
+
+// FetcherConfig holds configurable fetch strategy settings.
+type FetcherConfig struct {
+	Strategies []string           `yaml:"strategies"`
+	HTTP       HTTPFetchConfig    `yaml:"http"`
+	Browser    BrowserFetchConfig `yaml:"browser"`
+}
+
+// HTTPFetchConfig holds HTTP fetch strategy settings.
+type HTTPFetchConfig struct {
+	TimeoutSec int    `yaml:"timeout_sec"`
+	MaxContent int    `yaml:"max_content"`
+	UserAgent  string `yaml:"user_agent"`
+}
+
+// BrowserFetchConfig holds browser fetch strategy settings.
+type BrowserFetchConfig struct {
+	TimeoutSec int    `yaml:"timeout_sec"`
+	MaxContent int    `yaml:"max_content"`
+	Lifecycle  string `yaml:"lifecycle"`
 }
 
 // IsHeadless returns whether to run in headless mode (defaults to true).
@@ -217,6 +239,33 @@ func Load(path string) (*Config, error) {
 	// Browser defaults
 	if cfg.Browser.TimeoutSec == 0 {
 		cfg.Browser.TimeoutSec = 30
+	}
+
+	// Fetcher defaults
+	if len(cfg.Fetcher.Strategies) == 0 {
+		if cfg.Browser.Enabled {
+			cfg.Fetcher.Strategies = []string{"http", "browser"}
+		} else {
+			cfg.Fetcher.Strategies = []string{"http"}
+		}
+	}
+	if cfg.Fetcher.HTTP.TimeoutSec == 0 {
+		cfg.Fetcher.HTTP.TimeoutSec = 15
+	}
+	if cfg.Fetcher.HTTP.MaxContent == 0 {
+		cfg.Fetcher.HTTP.MaxContent = 51200
+	}
+	if cfg.Fetcher.HTTP.UserAgent == "" {
+		cfg.Fetcher.HTTP.UserAgent = "LinkStash/1.0 (+https://github.com/lupguo/linkstash)"
+	}
+	if cfg.Fetcher.Browser.TimeoutSec == 0 {
+		cfg.Fetcher.Browser.TimeoutSec = 30
+	}
+	if cfg.Fetcher.Browser.MaxContent == 0 {
+		cfg.Fetcher.Browser.MaxContent = 51200
+	}
+	if cfg.Fetcher.Browser.Lifecycle == "" {
+		cfg.Fetcher.Browser.Lifecycle = "on-demand"
 	}
 
 	// Default TTL options if not configured
