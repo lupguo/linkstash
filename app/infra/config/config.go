@@ -144,8 +144,8 @@ func (d DatabaseConfig) GetSQLitePath() string {
 
 // NetworkTypeOption represents a network access type for the UI.
 type NetworkTypeOption struct {
-	Key   string `yaml:"key"`
-	Label string `yaml:"label"`
+	Key   string `yaml:"key" json:"key"`
+	Label string `yaml:"label" json:"label"`
 }
 
 // ShortTTLOption represents a single TTL choice for the UI dropdown.
