@@ -128,6 +128,13 @@ chmod +x "${INSTALL_DIR}/bin/linkstash"
 
 info "  Binaries installed (web assets embedded in binary since v0.4.0)."
 
+# Create symlinks in /usr/local/bin for system-wide access
+info "  Creating symlinks in /usr/local/bin..."
+ln -sf "${INSTALL_DIR}/bin/linkstash-server" /usr/local/bin/linkstash-server
+ln -sf "${INSTALL_DIR}/bin/linkstash" /usr/local/bin/linkstash
+info "  Symlinks: /usr/local/bin/linkstash-server → ${INSTALL_DIR}/bin/linkstash-server"
+info "  Symlinks: /usr/local/bin/linkstash → ${INSTALL_DIR}/bin/linkstash"
+
 # ============================================================
 # [4/6] Generate configuration
 # ============================================================
@@ -197,28 +204,15 @@ chmod 600 "${INSTALL_DIR}/.env"
 # [5/6] Install Chromium
 # ============================================================
 
-info "[5/6] Installing Chromium (headless browser for URL analysis)..."
+info "[5/6] Chromium check (optional — only needed if fetcher.strategies includes 'browser')..."
 
 if command -v chromium-browser &>/dev/null || command -v chromium &>/dev/null; then
     CHROMIUM_PATH=$(command -v chromium-browser 2>/dev/null || command -v chromium 2>/dev/null)
-    info "  Chromium already installed: ${CHROMIUM_PATH}"
+    info "  Chromium available: ${CHROMIUM_PATH}"
 else
-    if command -v dnf &>/dev/null; then
-        dnf install -y chromium &>/dev/null && info "  Chromium installed via dnf." || {
-            dnf install -y epel-release &>/dev/null
-            dnf install -y chromium &>/dev/null && info "  Chromium installed via EPEL." || {
-                warn "  Could not install Chromium. URL analysis will fall back to HTTP fetching."
-                warn "  Install manually: sudo dnf install chromium"
-            }
-        }
-    elif command -v apt-get &>/dev/null; then
-        apt-get update -qq &>/dev/null
-        apt-get install -y -qq chromium-browser &>/dev/null && info "  Chromium installed via apt." || {
-            warn "  Could not install Chromium. Install manually: sudo apt install chromium-browser"
-        }
-    else
-        warn "  No supported package manager found. Install Chromium manually."
-    fi
+    info "  Chromium not found. URL analysis will use HTTP fetching (sufficient for most sites)."
+    info "  To enable browser-based fetching later: sudo dnf install chromium (or apt install chromium-browser)"
+    info "  Then set fetcher.strategies: [\"http\", \"browser\"] and browser.enabled: true in config."
 fi
 
 # ============================================================

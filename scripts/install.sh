@@ -60,7 +60,7 @@ chmod +x "${INSTALL_DIR}/linkstash"
 # Download example config
 echo "==> Downloading example config..."
 mkdir -p "${HOME}/.linkstash"
-curl -fsSL "https://raw.githubusercontent.com/${REPO}/${VERSION}/conf/app_dev.yaml" -o "${HOME}/.linkstash/config.yaml" 2>/dev/null || true
+curl -fsSL "https://raw.githubusercontent.com/${REPO}/${VERSION}/conf/app_example.yaml" -o "${HOME}/.linkstash/config.yaml" 2>/dev/null || true
 
 echo ""
 echo "✅ LinkStash ${VERSION} installed successfully!"
@@ -69,6 +69,15 @@ echo "   Server: ${INSTALL_DIR}/linkstash-server"
 echo "   CLI:    ${INSTALL_DIR}/linkstash"
 echo "   Config: ${HOME}/.linkstash/config.yaml"
 echo ""
+
+# Warn if /opt/linkstash exists (INSTALL.sh deployment)
+if [ -d "/opt/linkstash/bin" ]; then
+    echo "⚠️  Found /opt/linkstash/bin (server deployment)."
+    echo "   The system uses /opt/linkstash/bin via /usr/local/bin symlinks."
+    echo "   This lightweight install to ${INSTALL_DIR} may shadow or conflict."
+    echo "   Consider removing: rm -f ${INSTALL_DIR}/linkstash ${INSTALL_DIR}/linkstash-server"
+    echo ""
+fi
 
 # Check if install dir is in PATH
 if [[ ":$PATH:" != *":${INSTALL_DIR}:"* ]]; then
@@ -81,4 +90,4 @@ fi
 echo "Quick start:"
 echo "   1. Edit ${HOME}/.linkstash/config.yaml (set secret_key, LLM API key)"
 echo "   2. linkstash-server -conf ${HOME}/.linkstash/config.yaml"
-echo "   3. Visit http://localhost:8080"
+echo "   3. Visit http://localhost:8888"
