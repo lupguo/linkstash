@@ -13,6 +13,7 @@ const EMPTY_FORM = {
   keywords: '',
   category: '',
   tags: '',
+  network_type: '',
   manual_weight: 0,
   visit_count: 0,
   short_code: '',
@@ -34,6 +35,7 @@ export function DetailPage({ id }) {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [enableShortCode, setEnableShortCode] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [networkTypes, setNetworkTypes] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
@@ -60,6 +62,14 @@ export function DetailPage({ id }) {
   }, []);
 
   useEffect(() => {
+    configApi.networkTypes().then(data => {
+      setNetworkTypes(data.network_types || []);
+    }).catch(err => {
+      console.error('Failed to load network types:', err);
+    });
+  }, []);
+
+  useEffect(() => {
     if (!isNew && id) {
       loadUrl();
     }
@@ -76,6 +86,7 @@ export function DetailPage({ id }) {
         keywords: data.keywords || '',
         category: data.category || '',
         tags: data.tags || '',
+        network_type: data.network_type || '',
         manual_weight: data.manual_weight || 0,
         visit_count: data.visit_count || 0,
         short_code: data.short_code || '',
@@ -120,6 +131,7 @@ export function DetailPage({ id }) {
           keywords: form.keywords,
           category: form.category,
           tags: form.tags,
+          network_type: form.network_type,
           manual_weight: Number(form.manual_weight) || 0,
           color: form.color,
           icon: form.icon,
@@ -148,6 +160,7 @@ export function DetailPage({ id }) {
           keywords: form.keywords,
           category: form.category,
           tags: form.tags,
+          network_type: form.network_type,
           manual_weight: Number(form.manual_weight) || 0,
           visit_count: Number(form.visit_count) || 0,
           color: form.color,
@@ -281,8 +294,8 @@ export function DetailPage({ id }) {
               <input type="text" class="input w-full text-sm" value={form.keywords} onInput={(e) => updateField('keywords', e.target.value)} placeholder="keyword1, keyword2, keyword3" />
             </div>
 
-            {/* Category + Tags */}
-            <div class="grid grid-cols-2 gap-4">
+            {/* Category + Network Type + Tags */}
+            <div class="grid grid-cols-3 gap-4">
               <div>
                 <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Category</label>
                 <select class="input w-full text-sm" value={form.category} onChange={(e) => updateField('category', e.target.value)}>
@@ -292,6 +305,18 @@ export function DetailPage({ id }) {
                   ))}
                   {form.category && !categories.includes(form.category) && (
                     <option value={form.category}>{form.category}</option>
+                  )}
+                </select>
+              </div>
+              <div>
+                <label class="block text-text-muted text-xs font-medium uppercase tracking-wider mb-1.5">Network</label>
+                <select class="input w-full text-sm" value={form.network_type} onChange={(e) => updateField('network_type', e.target.value)}>
+                  <option value="">Select...</option>
+                  {networkTypes.map(nt => (
+                    <option key={nt.key} value={nt.key}>{nt.label}</option>
+                  ))}
+                  {form.network_type && !networkTypes.find(nt => nt.key === form.network_type) && (
+                    <option value={form.network_type}>{form.network_type}</option>
                   )}
                 </select>
               </div>
@@ -433,6 +458,19 @@ export function DetailPage({ id }) {
                   </div>
                 )}
               </div>
+
+              {/* Network Type */}
+              {urlData.network_type && urlData.network_type !== '' && (
+                <div>
+                  <label class="text-text-muted text-xs font-medium uppercase tracking-wider">Network</label>
+                  <p class="text-sm text-accent mt-1">
+                    {(() => {
+                      const nt = networkTypes.find(n => n.key === urlData.network_type);
+                      return nt ? nt.label : urlData.network_type;
+                    })()}
+                  </p>
+                </div>
+              )}
 
               {/* Short Link */}
               {urlData.short_code && (
