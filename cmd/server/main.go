@@ -147,12 +147,6 @@ func main() {
 	// Cancel worker context
 	cancel()
 
-	// Close browser instances
-	if app.BrowserService != nil {
-		slog.Info("closing browser instances", "component", "shutdown")
-		app.BrowserService.Close()
-	}
-
 	slog.Info("LinkStash stopped gracefully")
 }
 
