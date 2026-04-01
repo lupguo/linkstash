@@ -7,7 +7,7 @@ LinkStash 是一款面向个人的 URL 资源管理工具，支持 URL 收集、
 | 功能                     | 说明                                                                           |
 |------------------------|------------------------------------------------------------------------------|
 | **URL 管理**             | 添加、编辑、删除、分页浏览，支持分类 / 标签 / 热度排序                                               |
-| **LLM 智能分析**           | 添加 URL 后异步抓取页面（Rod headless Chrome），LLM 自动提取标题、关键词、摘要、分类、标签                  |
+| **LLM 智能分析**           | 添加 URL 后异步抓取页面（可配置策略链：HTTP / headless Chrome），LLM 自动提取标题、关键词、摘要、分类、标签 |
 | **混合检索**               | FTS5 关键词检索 + 512 维向量语义检索 + Bleve 全文索引                                        |
 | **短链服务**               | SHA256+Base62 短码生成，302 重定向，支持 TTL 过期（410 Gone）                               |
 | **现代深色 Web UI**       | Refined Dark 设计（Slate 色系 + Sky 主色调），Preact SPA，紧凑多列链接网格，可折叠筛选，响应式（1/2/3 列），无限滚动 |
@@ -24,7 +24,7 @@ Go · chi · GORM · SQLite (modernc) · Google Wire · Preact · preact-router 
 
 ### 一键服务部署（Linux 服务器）
 
-自动完成用户创建、目录结构、二进制下载、配置生成、Chromium 安装、systemd 配置：
+自动完成用户创建、目录结构、二进制下载、配置生成、systemd 配置：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/lupguo/linkstash/main/INSTALL.sh | sudo bash
@@ -92,6 +92,38 @@ llm:
     model: "qwen/qwen3-embedding-8b"
     dimensions: 512
 ```
+
+### URL 抓取策略（Fetcher）
+
+LinkStash 使用可配置的策略链抓取网页内容供 LLM 分析。策略按顺序尝试，前一个失败自动降级到下一个。
+
+```yaml
+# 策略链：按顺序尝试，支持 "http"（Go 原生）、"browser"（Rod headless Chrome）、"browser-proxy"（Chrome + 代理）
+fetcher:
+  strategies: ["http"]              # 低内存服务器推荐仅 HTTP（~50MB）
+  # strategies: ["http", "browser"] # HTTP 优先，JS 渲染页面回退到 Chrome（需额外 ~200MB）
+  http:
+    timeout_sec: 15
+    max_content: 51200              # 50KB
+    user_agent: "LinkStash/1.0 (+https://github.com/lupguo/linkstash)"
+  browser:
+    timeout_sec: 30
+    max_content: 51200
+    lifecycle: "on-demand"          # 每次用完即关 Chrome，空闲时零内存
+
+# 使用 browser 策略时需启用
+browser:
+  enabled: false                    # 设为 true 并配合 strategies 包含 "browser"
+  # bin_path: "/usr/bin/chromium-browser"  # 留空则自动下载
+  headless: true
+  timeout_sec: 30
+```
+
+| 策略 | 内存占用 | 适用场景 |
+|------|---------|---------|
+| `["http"]` | ~50MB | 低内存服务器（≤2GB），大多数静态页面 |
+| `["http", "browser"]` | ~50MB 空闲 / ~250MB 分析中 | 需解析 JS 渲染页面（SPA、Cloudflare 保护） |
+| `["http", "browser", "browser-proxy"]` | 同上 | 额外需要代理翻墙的站点 |
 
 ### 2. 启动
 
