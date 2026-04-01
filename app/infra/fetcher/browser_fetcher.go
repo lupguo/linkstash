@@ -21,13 +21,13 @@ type BrowserFetcher struct {
 	headless   bool
 }
 
-func NewBrowserFetcher(browserCfg config.BrowserConfig, fetchCfg config.BrowserFetchConfig, proxyURL string) *BrowserFetcher {
+func NewBrowserFetcher(cfg config.BrowserConfig, proxyURL string) *BrowserFetcher {
 	return &BrowserFetcher{
-		binPath:    browserCfg.BinPath,
+		binPath:    cfg.BinPath,
 		proxyURL:   proxyURL,
-		timeoutSec: fetchCfg.TimeoutSec,
-		maxContent: fetchCfg.MaxContent,
-		headless:   browserCfg.IsHeadless(),
+		timeoutSec: cfg.TimeoutSec,
+		maxContent: cfg.MaxContent,
+		headless:   cfg.IsHeadless(),
 	}
 }
 
@@ -41,9 +41,9 @@ type BrowserProxyFetcher struct {
 	*BrowserFetcher
 }
 
-func NewBrowserProxyFetcher(browserCfg config.BrowserConfig, fetchCfg config.BrowserFetchConfig, proxyURL string) *BrowserProxyFetcher {
+func NewBrowserProxyFetcher(cfg config.BrowserConfig, proxyURL string) *BrowserProxyFetcher {
 	return &BrowserProxyFetcher{
-		BrowserFetcher: NewBrowserFetcher(browserCfg, fetchCfg, proxyURL),
+		BrowserFetcher: NewBrowserFetcher(cfg, proxyURL),
 	}
 }
 

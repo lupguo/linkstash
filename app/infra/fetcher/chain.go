@@ -23,15 +23,15 @@ func NewChainFetcher(cfg *config.Config) *ChainFetcher {
 			slog.Info("fetcher registered", "strategy", "http")
 
 		case "browser":
-			if !cfg.Browser.Enabled {
+			if !cfg.Fetcher.Browser.Enabled {
 				slog.Warn("fetcher strategy 'browser' configured but browser.enabled=false, skipping")
 				continue
 			}
-			fetchers = append(fetchers, NewBrowserFetcher(cfg.Browser, cfg.Fetcher.Browser, ""))
+			fetchers = append(fetchers, NewBrowserFetcher(cfg.Fetcher.Browser, ""))
 			slog.Info("fetcher registered", "strategy", "browser")
 
 		case "browser-proxy":
-			if !cfg.Browser.Enabled {
+			if !cfg.Fetcher.Browser.Enabled {
 				slog.Warn("fetcher strategy 'browser-proxy' configured but browser.enabled=false, skipping")
 				continue
 			}
@@ -39,7 +39,7 @@ func NewChainFetcher(cfg *config.Config) *ChainFetcher {
 				slog.Warn("fetcher strategy 'browser-proxy' configured but no proxy set, skipping")
 				continue
 			}
-			fetchers = append(fetchers, NewBrowserProxyFetcher(cfg.Browser, cfg.Fetcher.Browser, cfg.Proxy.HTTPProxy))
+			fetchers = append(fetchers, NewBrowserProxyFetcher(cfg.Fetcher.Browser, cfg.Proxy.HTTPProxy))
 			slog.Info("fetcher registered", "strategy", "browser-proxy")
 
 		default:

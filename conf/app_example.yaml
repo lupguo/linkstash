@@ -86,12 +86,9 @@ fetcher:
     max_content: 51200
     user_agent: "LinkStash/1.0 (+https://github.com/lupguo/linkstash)"
   browser:
+    enabled: false
+    # bin_path: "/usr/bin/chromium-browser"
+    headless: true
     timeout_sec: 30
     max_content: 51200
     lifecycle: "on-demand"
-
-browser:
-  enabled: true
-  # bin_path: "/usr/bin/chromium-browser"  # 留空自动下载
-  headless: true
-  timeout_sec: 30

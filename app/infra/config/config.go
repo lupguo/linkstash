@@ -19,22 +19,13 @@ type Config struct {
 	Categories []string       `yaml:"categories"`
 	Proxy      ProxyConfig    `yaml:"proxy"`
 	Fetcher    FetcherConfig  `yaml:"fetcher"`
-	Browser    BrowserConfig  `yaml:"browser"`
-}
-
-// BrowserConfig holds Rod headless browser configuration.
-type BrowserConfig struct {
-	Enabled    bool   `yaml:"enabled"`     // Enable Rod fallback (default false)
-	BinPath    string `yaml:"bin_path"`    // Chromium binary path (empty = auto download)
-	Headless   *bool  `yaml:"headless"`    // Headless mode (default true)
-	TimeoutSec int    `yaml:"timeout_sec"` // Page timeout in seconds (default 30)
 }
 
 // FetcherConfig holds configurable fetch strategy settings.
 type FetcherConfig struct {
-	Strategies []string           `yaml:"strategies"`
-	HTTP       HTTPFetchConfig    `yaml:"http"`
-	Browser    BrowserFetchConfig `yaml:"browser"`
+	Strategies []string        `yaml:"strategies"`
+	HTTP       HTTPFetchConfig `yaml:"http"`
+	Browser    BrowserConfig   `yaml:"browser"`
 }
 
 // HTTPFetchConfig holds HTTP fetch strategy settings.
@@ -44,11 +35,14 @@ type HTTPFetchConfig struct {
 	UserAgent  string `yaml:"user_agent"`
 }
 
-// BrowserFetchConfig holds browser fetch strategy settings.
-type BrowserFetchConfig struct {
-	TimeoutSec int    `yaml:"timeout_sec"`
-	MaxContent int    `yaml:"max_content"`
-	Lifecycle  string `yaml:"lifecycle"`
+// BrowserConfig holds browser fetch strategy settings (Rod headless Chrome).
+type BrowserConfig struct {
+	Enabled    bool   `yaml:"enabled"`     // Include in strategy chain (default false)
+	BinPath    string `yaml:"bin_path"`    // Chromium binary path (empty = auto download)
+	Headless   *bool  `yaml:"headless"`    // Headless mode (default true)
+	TimeoutSec int    `yaml:"timeout_sec"` // Page timeout in seconds (default 30)
+	MaxContent int    `yaml:"max_content"` // Max content bytes (default 51200)
+	Lifecycle  string `yaml:"lifecycle"`   // "on-demand" or "singleton" (default "on-demand")
 }
 
 // IsHeadless returns whether to run in headless mode (defaults to true).
@@ -236,14 +230,9 @@ func Load(path string) (*Config, error) {
 		cfg.Log.Format = "text"
 	}
 
-	// Browser defaults
-	if cfg.Browser.TimeoutSec == 0 {
-		cfg.Browser.TimeoutSec = 30
-	}
-
 	// Fetcher defaults
 	if len(cfg.Fetcher.Strategies) == 0 {
-		if cfg.Browser.Enabled {
+		if cfg.Fetcher.Browser.Enabled {
 			cfg.Fetcher.Strategies = []string{"http", "browser"}
 		} else {
 			cfg.Fetcher.Strategies = []string{"http"}
