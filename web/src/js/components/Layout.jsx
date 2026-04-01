@@ -22,15 +22,15 @@ export function Layout({ children }) {
             </svg>
             <span>LinkStash</span>
           </a>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1 sm:gap-2">
             {isAuthenticated.value ? (
               <>
-                <a href="/" class="btn px-3.5 py-1.5 no-underline text-sm">Home</a>
-                <a href="/urls/new" class="btn btn-primary px-3.5 py-1.5 no-underline text-sm">+ New Link</a>
-                <a href="#" onClick={handleLogout} class="btn btn-danger px-3.5 py-1.5 no-underline text-sm">Logout</a>
+                <a href="/" class="btn px-2 py-1 sm:px-3.5 sm:py-1.5 no-underline text-xs sm:text-sm">Home</a>
+                <a href="/urls/new" class="btn btn-primary px-2 py-1 sm:px-3.5 sm:py-1.5 no-underline text-xs sm:text-sm whitespace-nowrap">+ New<span class="hidden sm:inline"> Link</span></a>
+                <a href="#" onClick={handleLogout} class="btn btn-danger px-2 py-1 sm:px-3.5 sm:py-1.5 no-underline text-xs sm:text-sm">Logout</a>
               </>
             ) : (
-              <a href="/login" class="btn px-3.5 py-1.5 no-underline text-sm">Login</a>
+              <a href="/login" class="btn px-2 py-1 sm:px-3.5 sm:py-1.5 no-underline text-xs sm:text-sm">Login</a>
             )}
           </div>
         </div>
