@@ -77,6 +77,13 @@
     }
   }
 
+  /* iOS Safari auto-zooms inputs with font-size < 16px */
+  @media (max-width: 640px) {
+    .input {
+      font-size: 16px;
+    }
+  }
+
   /* ── Buttons ── */
   .btn {
     border: 1px solid var(--color-border-hi);

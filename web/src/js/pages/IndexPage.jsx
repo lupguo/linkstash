@@ -12,7 +12,7 @@ export function IndexPage() {
   const [query, setQuery] = useState('');
   const [searchType, setSearchType] = useState('keyword');
   const [category, setCategory] = useState('');
-  const [sort, setSort] = useState('weight');
+  const [sort, setSort] = useState('latest');
   const [size, setSize] = useState(100);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -134,7 +134,7 @@ export function IndexPage() {
       if (e.key === 'Escape') {
         setQuery('');
         setCategory('');
-        setSort('weight');
+        setSort('latest');
         setSize(100);
         setIsShortURL(false);
         setMinScore(0.6);

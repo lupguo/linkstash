@@ -22,7 +22,7 @@ export function SearchBar({ query, searchType, category, sort, size, isShortURL,
     onSearch('', 'keyword');
     onFilterChange({
       category: '',
-      sort: 'weight',
+      sort: 'latest',
       size: 100,
       isShortURL: false,
       minScore: 0.6,
@@ -34,7 +34,7 @@ export function SearchBar({ query, searchType, category, sort, size, isShortURL,
   const activeFilterCount = [
     searchType !== 'keyword',
     category !== '',
-    sort !== 'weight',
+    sort !== 'latest',
     size !== 100,
     isShortURL,
     searchType === 'hybrid' && minScore !== 0.6,

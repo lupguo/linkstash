@@ -3,6 +3,7 @@ import { route } from 'preact-router';
 import { useState } from 'preact/hooks';
 import { urlApi } from '../api.js';
 import { copyToClipboard } from '../utils.js';
+import { urlListVersion } from '../store.js';
 import { ConfirmModal } from './ConfirmModal.jsx';
 
 function getDomain(link) {
@@ -32,6 +33,7 @@ function relativeTime(dateStr) {
 
 export function URLCard({ url, onDelete }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
 
   async function handleVisit(e) {
     e.stopPropagation();
@@ -56,6 +58,21 @@ export function URLCard({ url, onDelete }) {
   function handleDelete(e) {
     e.stopPropagation();
     setShowDeleteModal(true);
+  }
+
+  async function handleAnalyze(e) {
+    e.stopPropagation();
+    if (analyzing) return;
+    setAnalyzing(true);
+    try {
+      await urlApi.reanalyze(url.id);
+      // Bump list version to trigger re-fetch so card shows "analyzing" status
+      urlListVersion.value++;
+    } catch (err) {
+      console.error('Analyze failed:', err);
+    } finally {
+      setAnalyzing(false);
+    }
   }
 
   async function confirmDelete() {
@@ -156,6 +173,19 @@ export function URLCard({ url, onDelete }) {
           title="Edit"
         >
           Edit
+        </button>
+        <button
+          onClick={handleAnalyze}
+          class="text-[11px] text-text-muted hover:text-accent px-1.5 py-0.5 rounded transition-colors"
+          title="Re-analyze with AI"
+          disabled={analyzing}
+        >
+          {analyzing ? (
+            <svg class="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : 'Analyze'}
         </button>
         <button
           onClick={handleDelete}
