@@ -4,10 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
-	neturl "net/url"
 	"strings"
 	"time"
 
@@ -16,13 +13,10 @@ import (
 	"github.com/lupguo/linkstash/app/infra/llm"
 )
 
-// BrowserFetcher defines the interface for headless browser page fetching.
-// Defined in the domain layer to maintain Clean Architecture (no infra dependency).
-type BrowserFetcher interface {
-	Enabled() bool
-	HasProxy() bool
-	FetchPage(ctx context.Context, url string, useProxy bool) (string, error)
-	Close()
+// ContentFetcher fetches page content from a URL using a configured strategy chain.
+type ContentFetcher interface {
+	Fetch(ctx context.Context, url string) (string, error)
+	Name() string
 }
 
 type WorkerService struct {
@@ -31,9 +25,8 @@ type WorkerService struct {
 	llmLogRepo    repos.LLMLogRepo
 	embeddingRepo repos.EmbeddingRepo
 	llmClient     *llm.LLMClient
-	httpClient    *http.Client
 	prompts       map[string]string
-	browserSvc    BrowserFetcher
+	fetcher       ContentFetcher
 	done          chan struct{}
 }
 
@@ -43,21 +36,16 @@ func NewWorkerService(
 	embeddingRepo repos.EmbeddingRepo,
 	llmClient *llm.LLMClient,
 	prompts map[string]string,
-	httpClient *http.Client,
-	browserSvc BrowserFetcher,
+	fetcher ContentFetcher,
 ) *WorkerService {
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: 10 * time.Second}
-	}
 	return &WorkerService{
 		queue:         make(chan uint, 100),
 		urlRepo:       urlRepo,
 		llmLogRepo:    llmLogRepo,
 		embeddingRepo: embeddingRepo,
 		llmClient:     llmClient,
-		httpClient:    httpClient,
 		prompts:       prompts,
-		browserSvc:    browserSvc,
+		fetcher:       fetcher,
 		done:          make(chan struct{}),
 	}
 }
@@ -230,153 +218,11 @@ func (w *WorkerService) doProcessURL(ctx context.Context, urlID uint) error {
 	return nil
 }
 
-// fetchPageContent fetches page content for LLM analysis.
-//   - Browser enabled: Rod headless browser (no proxy → with proxy)
-//   - Browser disabled: HTTP GET with browser-like headers → root domain fallback
+// fetchPageContent fetches page content for LLM analysis using the configured fetcher chain.
 func (w *WorkerService) fetchPageContent(link string) (string, error) {
-	// Browser mode: use Rod directly, no HTTP fallback
-	if w.browserSvc != nil && w.browserSvc.Enabled() {
-		return w.fetchWithBrowser(link)
-	}
-
-	// HTTP mode: optimized HTTP GET + root domain fallback
-	return w.fetchWithHTTP(link)
-}
-
-// fetchWithBrowser fetches using Rod headless browser (no proxy first, then with proxy).
-func (w *WorkerService) fetchWithBrowser(link string) (string, error) {
-	ctx := context.Background()
-
-	// Try without proxy first
-	content, err := w.browserSvc.FetchPage(ctx, link, false)
-	if err == nil && !isBlockedContent(content) {
-		slog.Debug("browser fetch success", "component", "worker", "url", link)
-		return content, nil
-	}
-	if err != nil {
-		slog.Info("browser fetch failed", "component", "worker", "url", link, "error", err)
-	} else {
-		slog.Info("browser fetch returned blocked content", "component", "worker", "url", link)
-	}
-
-	// Try with proxy if configured
-	if w.browserSvc.HasProxy() {
-		proxyContent, proxyErr := w.browserSvc.FetchPage(ctx, link, true)
-		if proxyErr == nil && !isBlockedContent(proxyContent) {
-			slog.Debug("browser+proxy fetch success", "component", "worker", "url", link)
-			return proxyContent, nil
-		}
-		if proxyErr != nil {
-			slog.Info("browser+proxy fetch failed", "component", "worker", "url", link, "error", proxyErr)
-		} else {
-			slog.Info("browser+proxy fetch returned blocked content", "component", "worker", "url", link)
-		}
-	}
-
-	// All browser attempts failed
-	if err != nil {
-		return "", fmt.Errorf("browser fetch: %w", err)
-	}
-	return "", fmt.Errorf("browser fetch: blocked content")
-}
-
-// fetchWithHTTP fetches using optimized HTTP GET with root domain fallback.
-func (w *WorkerService) fetchWithHTTP(link string) (string, error) {
-	content, err := w.doFetch(link)
-	if err == nil && !isBlockedContent(content) {
-		return content, nil
-	}
-
-	// Fallback: try root domain
-	parsed, parseErr := neturl.Parse(link)
-	if parseErr != nil || parsed.Host == "" {
-		if err != nil {
-			return "", err
-		}
-		return content, nil
-	}
-
-	rootURL := parsed.Scheme + "://" + parsed.Host + "/"
-	if rootURL == link || rootURL+"/" == link {
-		if err != nil {
-			return "", err
-		}
-		return content, nil
-	}
-
-	slog.Info("fallback to root domain", "component", "worker", "root_url", rootURL, "url", link)
-	rootContent, rootErr := w.doFetch(rootURL)
-	if rootErr == nil && !isBlockedContent(rootContent) {
-		return rootContent, nil
-	}
-
-	if content != "" {
-		return content, nil
-	}
-	if err != nil {
-		return "", err
-	}
-	return "", rootErr
-}
-
-// doFetch fetches a URL with browser-like headers and returns its body content (up to 50KB).
-func (w *WorkerService) doFetch(url string) (string, error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return "", fmt.Errorf("create request: %w", err)
-	}
-
-	// Set browser-like headers to reduce blocking
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7")
-	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Set("Cache-Control", "no-cache")
-	req.Header.Set("Sec-Fetch-Dest", "document")
-	req.Header.Set("Sec-Fetch-Mode", "navigate")
-	req.Header.Set("Sec-Fetch-Site", "none")
-	req.Header.Set("Sec-Fetch-User", "?1")
-	req.Header.Set("Upgrade-Insecure-Requests", "1")
-
-	resp, err := w.httpClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("http get: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("status %d", resp.StatusCode)
-	}
-
-	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 50*1024))
-	if err != nil {
-		return "", fmt.Errorf("read body: %w", err)
-	}
-	return string(bodyBytes), nil
-}
-
-// isBlockedContent checks if the content looks like a Cloudflare challenge
-// or an auth-wall page rather than actual content.
-func isBlockedContent(content string) bool {
-	if len(content) < 100 {
-		return true
-	}
-	lower := strings.ToLower(content)
-	markers := []string{
-		"cf-mitigated",
-		"challenge-platform",
-		"cf-chl-bypass",
-		"just a moment",
-		"checking your browser",
-		"attention required",
-		"ray id",
-	}
-	for _, m := range markers {
-		if strings.Contains(lower, m) {
-			return true
-		}
-	}
-	return false
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	return w.fetcher.Fetch(ctx, link)
 }
 
 func (w *WorkerService) setURLFailed(urlID uint, errMsg string) {

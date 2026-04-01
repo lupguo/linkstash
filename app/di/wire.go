@@ -12,7 +12,7 @@ import (
 	"github.com/lupguo/linkstash/app/domain/repos"
 	"github.com/lupguo/linkstash/app/domain/services"
 	"github.com/lupguo/linkstash/app/handler"
-	"github.com/lupguo/linkstash/app/infra/browser"
+	"github.com/lupguo/linkstash/app/infra/fetcher"
 	"github.com/lupguo/linkstash/web"
 	"github.com/lupguo/linkstash/app/infra/config"
 	"github.com/lupguo/linkstash/app/infra/db"
@@ -55,8 +55,8 @@ func ProvideHTTPClient(cfg *config.Config) *http.Client {
 	return config.NewHTTPClient(cfg.Proxy, 30*time.Second)
 }
 
-func ProvideBrowserService(cfg *config.Config) *browser.BrowserService {
-	return browser.NewBrowserService(cfg.Browser, cfg.Proxy.HTTPProxy)
+func ProvideChainFetcher(cfg *config.Config) *fetcher.ChainFetcher {
+	return fetcher.NewChainFetcher(cfg)
 }
 
 func ProvideKeywordSearch(cfg *config.Config, database *gorm.DB) search.KeywordSearcher {
@@ -81,10 +81,9 @@ func ProvideWorkerService(
 	embeddingRepo repos.EmbeddingRepo,
 	llmClient *llm.LLMClient,
 	cfg *config.Config,
-	httpClient *http.Client,
-	browserSvc *browser.BrowserService,
+	chainFetcher *fetcher.ChainFetcher,
 ) *services.WorkerService {
-	return services.NewWorkerService(urlRepo, llmLogRepo, embeddingRepo, llmClient, cfg.LLM.Prompts, httpClient, browserSvc)
+	return services.NewWorkerService(urlRepo, llmLogRepo, embeddingRepo, llmClient, cfg.LLM.Prompts, chainFetcher)
 }
 
 func ProvideAuthConfig(cfg *config.Config) *config.AuthConfig {
@@ -102,7 +101,7 @@ var InfraSet = wire.NewSet(
 	ProvideDB,
 	ProvideHTTPClient,
 	ProvideLLMClient,
-	ProvideBrowserService,
+	ProvideChainFetcher,
 	ProvideKeywordSearch,
 	ProvideVectorSearch,
 )
