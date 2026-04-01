@@ -42,15 +42,16 @@ var infoCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		fmt.Printf("ID:          %v\n", result["ID"])
+		fmt.Printf("ID:          %v\n", result["id"])
 		fmt.Printf("Link:        %v\n", result["link"])
 		fmt.Printf("Title:       %v\n", result["title"])
 		fmt.Printf("Description: %v\n", result["description"])
 		fmt.Printf("Category:    %v\n", result["category"])
+		fmt.Printf("Network:     %v\n", result["network_type"])
 		fmt.Printf("Tags:        %v\n", result["tags"])
 		fmt.Printf("Status:      %v\n", result["status"])
 		fmt.Printf("Visits:      %v\n", result["visit_count"])
-		fmt.Printf("Created:     %v\n", result["CreatedAt"])
+		fmt.Printf("Created:     %v\n", result["created_at"])
 	},
 }
 
