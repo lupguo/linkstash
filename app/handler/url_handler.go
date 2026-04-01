@@ -57,7 +57,7 @@ func (h *URLHandler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 
 	url, err := h.usecase.AddURL(req.Link)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint") {
+		if strings.Contains(err.Error(), "UNIQUE constraint") || strings.Contains(err.Error(), "Duplicate entry") {
 			slog.Warn("duplicate url", "component", "url_handler", "link", req.Link)
 			writeError(w, http.StatusConflict, "CONFLICT", "该链接已存在")
 			return
