@@ -59,7 +59,8 @@ var searchCmd = &cobra.Command{
 			title := urlData["title"]
 			link := urlData["link"]
 			desc := urlData["description"]
-			fmt.Printf("%d. %v (score: %.2f)\n", i+1, title, score)
+			network := urlData["network_type"]
+			fmt.Printf("%d. %v (score: %.2f) [%v]\n", i+1, title, score, network)
 			fmt.Printf("   %v\n", link)
 			if desc != nil && desc != "" {
 				fmt.Printf("   %v\n", desc)

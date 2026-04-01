@@ -56,8 +56,9 @@ llm:
   prompts:
     url_analysis: |
       分析以下网页内容，返回JSON格式：
-      {"title":"标题","keywords":"关键词1,关键词2","description":"50字内摘要","category":"分类","tags":"标签1,标签2"}
+      {"title":"标题","keywords":"关键词1,关键词2","description":"50字内摘要","category":"分类","tags":"标签1,标签2","network_type":"网络类型"}
       category必须从以下选项中选择：技术、设计、产品、商业、科学、生活、工具、资讯、其他
+      network_type根据URL域名和页面内容判断网络访问环境，从以下选项中选择：internal(企业内部/内网站点,如内网IP、企业私有域名), domestic(中国国内站点), overseas(海外站点), unknown(无法确定)
       tags基于内容自由生成，用逗号分隔，2-5个标签。
       仅返回JSON，不要其他内容。
     url_categorize: |
@@ -74,6 +75,16 @@ categories:
   - "工具"
   - "资讯"
   - "其他"
+
+network_types:
+  - key: internal
+    label: 内网
+  - key: domestic
+    label: 国内
+  - key: overseas
+    label: 海外
+  - key: unknown
+    label: 未知
 
 # proxy:
 #   http_proxy: "http://127.0.0.1:8118"       # HTTP/HTTPS proxy

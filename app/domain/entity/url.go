@@ -14,6 +14,7 @@ type URL struct {
 	Description    string         `gorm:"comment:页面描述" json:"description"`
 	Category       string         `gorm:"index;comment:分类" json:"category"`
 	Tags           string         `gorm:"comment:标签(逗号分隔)" json:"tags"`
+	NetworkType    string         `gorm:"size:20;default:unknown;index;comment:网络类型(internal/domestic/overseas/unknown)" json:"network_type"`
 	Status         string         `gorm:"default:pending;comment:状态(pending/analyzing/ready/failed)" json:"status"`
 	AutoWeight     float64        `gorm:"default:0;comment:自动权重(访问累加)" json:"auto_weight"`
 	ManualWeight   float64        `gorm:"default:0;comment:手动权重" json:"manual_weight"`

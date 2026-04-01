@@ -164,6 +164,7 @@ func (w *WorkerService) doProcessURL(ctx context.Context, urlID uint) error {
 		Description string `json:"description"`
 		Category    string `json:"category"`
 		Tags        string `json:"tags"`
+		NetworkType string `json:"network_type"`
 	}
 	if err := json.Unmarshal([]byte(chatResp.Content), &parsed); err != nil {
 		return fmt.Errorf("parse llm response: %w", err)
@@ -175,6 +176,11 @@ func (w *WorkerService) doProcessURL(ctx context.Context, urlID uint) error {
 	url.Description = parsed.Description
 	url.Category = parsed.Category
 	url.Tags = parsed.Tags
+	if parsed.NetworkType != "" {
+		url.NetworkType = parsed.NetworkType
+	} else {
+		url.NetworkType = "unknown"
+	}
 	url.Status = "ready"
 	if err := w.urlRepo.Update(url); err != nil {
 		return fmt.Errorf("save ready: %w", err)

@@ -96,7 +96,7 @@ ADD_RESP=$(curl -s -X POST $SERVER/api/urls \
     -H "$AUTH" -H "Content-Type: application/json" \
     -d "{\"link\":\"${URL_A}\"}")
 check "Add URL" '"link"' "$ADD_RESP"
-URL_A_ID=$(json_field "$ADD_RESP" "['ID']")
+URL_A_ID=$(json_field "$ADD_RESP" "['id']")
 
 ADD_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST $SERVER/api/urls \
     -H "$AUTH" -H "Content-Type: application/json" \
@@ -110,7 +110,7 @@ curl -s -X POST $SERVER/api/urls -H "$AUTH" -H "Content-Type: application/json" 
     -d "{\"link\":\"${URL_C}\"}" > /dev/null
 RESP_D=$(curl -s -X POST $SERVER/api/urls -H "$AUTH" -H "Content-Type: application/json" \
     -d "{\"link\":\"${URL_D}\"}")
-URL_D_ID=$(json_field "$RESP_D" "['ID']")
+URL_D_ID=$(json_field "$RESP_D" "['id']")
 
 # Test 7: List URLs
 LIST_RESP=$(curl -s "$SERVER/api/urls?page=1&size=10" -H "$AUTH")

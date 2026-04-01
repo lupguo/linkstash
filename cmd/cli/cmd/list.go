@@ -44,17 +44,18 @@ var listCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Printf("%-6s %-60s %-12s\n", "ID", "Link", "Status")
+		fmt.Printf("%-6s %-50s %-10s %-12s\n", "ID", "Link", "Network", "Status")
 		fmt.Println(strings.Repeat("-", 80))
 		for _, item := range data {
 			m, ok := item.(map[string]interface{})
 			if !ok {
 				continue
 			}
-			id := m["ID"]
+			id := m["id"]
 			link := m["link"]
+			network := m["network_type"]
 			status := m["status"]
-			fmt.Printf("%-6v %-60v %-12v\n", id, link, status)
+			fmt.Printf("%-6v %-50v %-10v %-12v\n", id, link, network, status)
 		}
 
 		fmt.Printf("\nTotal: %.0f | Page: %.0f\n", result["total"], result["page"])

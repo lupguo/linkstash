@@ -16,7 +16,8 @@ type Config struct {
 	Log        LogConfig      `yaml:"log"`
 	LLM        LLMConfig      `yaml:"llm"`
 	Short      ShortConfig    `yaml:"short"`
-	Categories []string       `yaml:"categories"`
+	Categories   []string           `yaml:"categories"`
+	NetworkTypes []NetworkTypeOption `yaml:"network_types"`
 	Proxy      ProxyConfig    `yaml:"proxy"`
 	Fetcher    FetcherConfig  `yaml:"fetcher"`
 }
@@ -139,6 +140,12 @@ func (d DatabaseConfig) GetSQLitePath() string {
 		return d.Path
 	}
 	return "./data/linkstash.db"
+}
+
+// NetworkTypeOption represents a network access type for the UI.
+type NetworkTypeOption struct {
+	Key   string `yaml:"key"`
+	Label string `yaml:"label"`
 }
 
 // ShortTTLOption represents a single TTL choice for the UI dropdown.
@@ -264,6 +271,16 @@ func Load(path string) (*Config, error) {
 			{Label: "1 day", Value: "1d"},
 			{Label: "7 days", Value: "7d"},
 			{Label: "30 days", Value: "30d"},
+		}
+	}
+
+	// Default network types if not configured
+	if len(cfg.NetworkTypes) == 0 {
+		cfg.NetworkTypes = []NetworkTypeOption{
+			{Key: "internal", Label: "内网"},
+			{Key: "domestic", Label: "国内"},
+			{Key: "overseas", Label: "海外"},
+			{Key: "unknown", Label: "未知"},
 		}
 	}
 

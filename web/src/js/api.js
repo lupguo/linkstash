@@ -58,6 +58,14 @@ export const configApi = {
   categories() {
     return fetch('/api/config/categories').then(res => res.json());
   },
+
+  /**
+   * Get configured network types.
+   * @returns {Promise<{network_types: {key: string, label: string}[]}>}
+   */
+  networkTypes() {
+    return fetch('/api/config/network-types').then(res => res.json());
+  },
 };
 
 // ---------------------------------------------------------------------------
