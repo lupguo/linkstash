@@ -46,7 +46,7 @@ llm:
     provider: "openrouter"
     endpoint: "https://openrouter.ai/api/v1/chat/completions"
     api_key: "${OPENROUTER_API_KEY}"
-    model: "minimax/minimax-m2.5"
+    model: "minimax/minimax-m2.5:free"
   embedding:
     provider: "openrouter"
     endpoint: "https://openrouter.ai/api/v1/embeddings"
