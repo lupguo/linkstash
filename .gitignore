@@ -60,3 +60,4 @@ docs/superpowers/
 
 server
 .worktrees/
+web/templates/spa.html

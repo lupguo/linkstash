@@ -18,7 +18,7 @@ CSS_OUT := web/static/css/app.css
 JS_SRC := web/src/js/app.jsx
 JS_OUT := web/static/js/app.js
 
-.PHONY: all build build-server build-cli clean run stop restart test smoke-test wire tidy lint fmt help frontend frontend-css frontend-js dev-frontend release release-full
+.PHONY: all build build-server build-cli clean run stop restart test smoke-test wire tidy lint fmt help frontend frontend-css frontend-js frontend-hash dev-frontend release release-full
 
 ## Default target
 all: build
@@ -37,7 +37,7 @@ build-cli:
 	CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o $(BIN_DIR)/linkstash ./cmd/cli/
 
 ## Frontend build
-frontend: frontend-css frontend-js
+frontend: frontend-css frontend-js frontend-hash
 
 frontend-css:
 	@echo ">>> Building CSS..."
@@ -48,6 +48,18 @@ frontend-js:
 	@echo ">>> Building JS..."
 	@mkdir -p web/static/js
 	$(ESBUILD) $(JS_SRC) --bundle --minify --outfile=$(JS_OUT) --jsx=automatic --jsx-import-source=preact
+
+## Inject content hashes into spa.html for cache busting (auto-updates __CSS_HASH__ / __JS_HASH__)
+SPA_TPL := web/templates/spa.html
+frontend-hash:
+	@echo ">>> Injecting asset hashes into spa.html..."
+	@CSS_HASH=$$(md5 -q $(CSS_OUT) 2>/dev/null || md5sum $(CSS_OUT) | cut -c1-8) && \
+	 JS_HASH=$$(md5 -q $(JS_OUT) 2>/dev/null || md5sum $(JS_OUT) | cut -c1-8) && \
+	 sed \
+	   -e "s/__CSS_HASH__/$${CSS_HASH:0:8}/g" \
+	   -e "s/__JS_HASH__/$${JS_HASH:0:8}/g" \
+	   $(SPA_TPL).tmpl > $(SPA_TPL) && \
+	 echo "    CSS hash: $${CSS_HASH:0:8}, JS hash: $${JS_HASH:0:8}"
 
 dev-frontend:
 	@echo ">>> Watching frontend files..."
@@ -66,7 +78,7 @@ start: build-server
 	@set -a && . .env && set +a && nohup $(BIN_DIR)/linkstash-server -conf $(CONF) > /tmp/linkstash.log 2>&1 & echo $$! > /tmp/linkstash.pid
 	@echo "Server started (PID: $$(cat /tmp/linkstash.pid)), log: /tmp/linkstash.log"
 
-## Stop background server (PID file only, no pkill)
+## Stop background server (PID file + pkill fallback)
 stop:
 	@if [ -f /tmp/linkstash.pid ]; then \
 		PID=$$(cat /tmp/linkstash.pid); \
@@ -76,9 +88,8 @@ stop:
 			echo "PID $$PID not running"; \
 		fi; \
 		rm -f /tmp/linkstash.pid; \
-	else \
-		echo "No PID file found. To find the process manually: lsof -ti:8080"; \
 	fi
+	@pkill -f "linkstash-server" 2>/dev/null || true
 
 ## Restart server
 restart: stop
