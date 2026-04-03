@@ -44,10 +44,14 @@ Thumbs.db
 .superpowers/
 docs/superpowers/
 
-# Screenshots (but not static assets)
+# Docs (generated plans/specs)
+docs/
+
+# Screenshots (but not static assets or imgs/)
 *.png
 *.jpg
 *.jpeg
+!imgs/**
 !web/static/fonts/**
 !web/static/favicon*.png
 !web/static/apple-touch-icon.png

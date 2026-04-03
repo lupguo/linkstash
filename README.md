@@ -2,6 +2,8 @@
 
 LinkStash 是一款面向个人的 URL 资源管理工具，支持 URL 收集、LLM 智能分析、关键词/语义混合检索、短链生成，通过 Web 界面、CLI 工具和 PopClip 插件三种方式交互。
 
+![LinkStash](imgs/linkstash.png)
+
 ## ✨ 核心功能
 
 | 功能                     | 说明                                                                           |
