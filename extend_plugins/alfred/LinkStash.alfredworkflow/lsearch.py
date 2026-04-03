@@ -47,9 +47,10 @@ def read_cached_token():
 
 
 def save_token(token):
-    """Save JWT token to cache file."""
-    TOKEN_PATH.parent.mkdir(parents=True, exist_ok=True)
+    """Save JWT token to cache file with restricted permissions."""
+    TOKEN_PATH.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     TOKEN_PATH.write_text(token)
+    TOKEN_PATH.chmod(0o600)
 
 
 def delete_cached_token():
@@ -121,7 +122,7 @@ def search(query, token):
             return None  # Signal to retry with fresh token
         alfred_error("Server error", f"HTTP {e.code}")
     except urllib.error.URLError:
-        alfred_error("Connection timeout", f"Cannot reach {SERVER_URL}")
+        alfred_error("Connection failed", f"Cannot reach {SERVER_URL}")
 
 
 def search_with_retry(query):
