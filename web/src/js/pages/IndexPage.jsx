@@ -7,13 +7,19 @@ import { URLCard } from '../components/URLCard.jsx';
 import { SearchBar } from '../components/SearchBar.jsx';
 
 export function IndexPage() {
+  // Parse URL parameters for initial state (supports external triggers like Alfred)
+  const _initParams = new URLSearchParams(window.location.search);
+  const _initQ = _initParams.get('q') || '';
+  const _initType = _initParams.get('type') || (_initQ ? 'keyword' : 'keyword');
+  const _initSize = parseInt(_initParams.get('size'), 10) || 100;
+
   const [urls, setUrls] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [query, setQuery] = useState('');
-  const [searchType, setSearchType] = useState('keyword');
+  const [query, setQuery] = useState(_initQ);
+  const [searchType, setSearchType] = useState(_initType);
   const [category, setCategory] = useState('');
   const [sort, setSort] = useState('latest');
-  const [size, setSize] = useState(100);
+  const [size, setSize] = useState(_initSize);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [minScore, setMinScore] = useState(0.6);
@@ -31,16 +37,6 @@ export function IndexPage() {
       route('/login', true);
     }
   }, [isAuthenticated.value]);
-
-  // Read ?q= URL parameter on initial mount (for Alfred "linkstash" trigger)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const q = params.get('q');
-    if (q) {
-      setQuery(q);
-      setSearchType('keyword');
-    }
-  }, []);
 
   // Fetch categories from config API
   useEffect(() => {
