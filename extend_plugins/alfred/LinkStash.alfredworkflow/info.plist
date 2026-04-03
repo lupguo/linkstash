@@ -75,7 +75,7 @@
 				<key>escaping</key>
 				<integer>102</integer>
 				<key>keyword</key>
-				<string>lsearch</string>
+				<string>ls</string>
 				<key>queuedelaycustom</key>
 				<integer>3</integer>
 				<key>queuedelayimmediatelyalinitially</key>
@@ -163,7 +163,7 @@
 				<key>argumenttype</key>
 				<integer>0</integer>
 				<key>keyword</key>
-				<string>linkstash</string>
+				<string>lsweb</string>
 				<key>subtext</key>
 				<string>Open LinkStash web search</string>
 				<key>text</key>
@@ -199,12 +199,12 @@
 	<key>readme</key>
 	<string>## LinkStash Search for Alfred
 
-**lsearch {query}** — Search bookmarks, results shown in Alfred
+**ls {query}** — Search bookmarks, results shown in Alfred
 - Enter: Open URL in browser
 - Cmd+Enter: Copy URL to clipboard
 - Alt+Enter: Open in LinkStash web UI
 
-**linkstash {query}** — Open LinkStash web search in browser
+**lsweb {query}** — Open LinkStash web search in browser
 
 ### Setup
 Set these Workflow Environment Variables:

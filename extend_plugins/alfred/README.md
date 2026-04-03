@@ -11,7 +11,7 @@ Search your LinkStash bookmarks directly from Alfred.
 
 ## Usage
 
-### `lsearch {query}` — Native Alfred Search
+### `ls {query}` — Native Alfred Search
 
 Search bookmarks with results displayed in Alfred:
 
@@ -19,7 +19,7 @@ Search bookmarks with results displayed in Alfred:
 - **⌘+Enter** — Copy URL to clipboard
 - **⌥+Enter** — Open bookmark in LinkStash web UI
 
-### `linkstash {query}` — Web Search
+### `lsweb {query}` — Web Search
 
 Opens LinkStash web UI in your browser with the search query pre-filled.
 Useful for advanced filtering (category, network type, search type).
