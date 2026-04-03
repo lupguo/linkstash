@@ -10,26 +10,49 @@ export function IndexPage() {
   // Parse URL parameters for initial state (supports external triggers like Alfred)
   const _initParams = new URLSearchParams(window.location.search);
   const _initQ = _initParams.get('q') || '';
-  const _initType = _initParams.get('type') || (_initQ ? 'keyword' : 'keyword');
+  const _initType = _initParams.get('type') || 'keyword';
   const _initSize = parseInt(_initParams.get('size'), 10) || 100;
+  const _initCategory = _initParams.get('category') || '';
+  const _initNetworkType = _initParams.get('network_type') || '';
+  const _initSort = _initParams.get('sort') || 'latest';
+  const _initMinScore = parseFloat(_initParams.get('min_score')) || 0.6;
 
   const [urls, setUrls] = useState([]);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState(_initQ);
   const [searchType, setSearchType] = useState(_initType);
-  const [category, setCategory] = useState('');
-  const [sort, setSort] = useState('latest');
+  const [category, setCategory] = useState(_initCategory);
+  const [sort, setSort] = useState(_initSort);
   const [size, setSize] = useState(_initSize);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [minScore, setMinScore] = useState(0.6);
-  const [isShortURL, setIsShortURL] = useState(false);
+  const [minScore, setMinScore] = useState(_initMinScore);
+  const [isShortURL, setIsShortURL] = useState(_initParams.get('is_shorturl') === '1');
   const [categories, setCategories] = useState([]);
   const [networkTypes, setNetworkTypes] = useState([]);
-  const [networkType, setNetworkType] = useState('');
+  const [networkType, setNetworkType] = useState(_initNetworkType);
 
   const sentinelRef = useRef(null);
   const loadingRef = useRef(false);
+
+  // Sync search/filter state → URL query string (replaceState, no reload)
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (query) params.set('q', query);
+    if (searchType && searchType !== 'keyword') params.set('type', searchType);
+    if (category) params.set('category', category);
+    if (networkType) params.set('network_type', networkType);
+    if (sort && sort !== 'latest') params.set('sort', sort);
+    if (size && size !== 100) params.set('size', String(size));
+    if (isShortURL) params.set('is_shorturl', '1');
+    if (searchType === 'hybrid' && minScore !== 0.6) params.set('min_score', String(minScore));
+
+    const qs = params.toString();
+    const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (window.location.search !== (qs ? `?${qs}` : '')) {
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [query, searchType, category, networkType, sort, size, isShortURL, minScore]);
 
   // Auth guard
   useEffect(() => {
