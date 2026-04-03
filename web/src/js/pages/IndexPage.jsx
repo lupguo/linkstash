@@ -32,6 +32,16 @@ export function IndexPage() {
     }
   }, [isAuthenticated.value]);
 
+  // Read ?q= URL parameter on initial mount (for Alfred "linkstash" trigger)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    if (q) {
+      setQuery(q);
+      setSearchType('keyword');
+    }
+  }, []);
+
   // Fetch categories from config API
   useEffect(() => {
     if (!isAuthenticated.value) return;

@@ -5,11 +5,9 @@ export function SearchBar({ query, searchType, category, networkType, sort, size
   const [localQuery, setLocalQuery] = useState(query || '');
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Sync local query when parent clears it (e.g. ESC key)
+  // Sync local query with parent (handles ESC clear and URL param init)
   useEffect(() => {
-    if (query === '' && localQuery !== '') {
-      setLocalQuery('');
-    }
+    setLocalQuery(query || '');
   }, [query]);
 
   function handleSubmit(e) {
