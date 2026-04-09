@@ -111,19 +111,25 @@
 		<dict>
 			<key>config</key>
 			<dict>
-				<key>browser</key>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>python3 lopen.py "{query}"</string>
+				<key>scriptargtype</key>
+				<integer>0</integer>
+				<key>scriptfile</key>
 				<string></string>
-				<key>spaces</key>
-				<string></string>
-				<key>url</key>
-				<string>{query}</string>
+				<key>type</key>
+				<integer>0</integer>
 			</dict>
 			<key>type</key>
-			<string>alfred.workflow.action.openurl</string>
+			<string>alfred.workflow.action.script</string>
 			<key>uid</key>
 			<string>open-url-action</string>
 			<key>version</key>
-			<integer>1</integer>
+			<integer>2</integer>
 		</dict>
 		<dict>
 			<key>config</key>
@@ -200,11 +206,13 @@
 	<string>## LinkStash Search for Alfred
 
 **ls {query}** — Search bookmarks, results shown in Alfred
-- Enter: Open URL in browser
+- Enter: Open URL in browser (auto-records visit)
 - Cmd+Enter: Copy URL to clipboard
 - Alt+Enter: Open in LinkStash web UI
 
 **lsweb {query}** — Open LinkStash web search in browser
+
+Visit tracking: When you open a URL via Enter, the workflow automatically records a visit to keep your visit counts accurate across Alfred and the web UI.
 
 ### Setup
 Set these Workflow Environment Variables:

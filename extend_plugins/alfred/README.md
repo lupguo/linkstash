@@ -15,9 +15,11 @@ Search your LinkStash bookmarks directly from Alfred.
 
 Search bookmarks with results displayed in Alfred:
 
-- **Enter** — Open URL in browser
+- **Enter** — Open URL in browser (automatically records visit)
 - **⌘+Enter** — Copy URL to clipboard
 - **⌥+Enter** — Open bookmark in LinkStash web UI
+
+> Visit tracking: Opening a URL via Enter automatically calls `POST /api/urls/{id}/visit` in the background, keeping visit counts in sync with the web UI.
 
 ### `lsweb {query}` — Web Search
 

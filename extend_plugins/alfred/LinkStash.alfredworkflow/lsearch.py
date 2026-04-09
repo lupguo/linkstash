@@ -183,6 +183,7 @@ def format_alfred_items(result, query):
             "title": title,
             "subtitle": "  ".join(subtitle_parts),
             "arg": link,
+            "variables": {"url_id": uid},
             "icon": {"path": "icon.png"},
             "mods": {
                 "cmd": {
