@@ -1,0 +1,501 @@
+================================================================================
+                  ALFRED WORKFLOW & VISIT TRACKING FILES
+                        COMPLETE MANIFEST
+================================================================================
+
+Generated: 2026-04-09
+Repository: LinkStash (lupguo/linkstash)
+
+================================================================================
+                         ALFRED WORKFLOW FILES
+================================================================================
+
+Location: extend_plugins/alfred/
+
+📄 File 1: README.md
+   ├─ Purpose: Setup and usage documentation
+   ├─ Size: ~1,500 bytes
+   ├─ Key Sections:
+   │  ├─ Installation instructions
+   │  ├─ Usage guide (ls and lsweb commands)
+   │  ├─ Environment variable configuration
+   │  └─ Troubleshooting guide
+   └─ Token Management Notes:
+      ├─ Cached at ~/.linkstash/token
+      ├─ Auto-refreshes on expiry
+      └─ Can be manually deleted to force re-auth
+
+🐍 File 2: LinkStash.alfredworkflow/lsearch.py
+   ├─ Purpose: Alfred Script Filter for bookmark search
+   ├─ Language: Python 3
+   ├─ Size: 7,047 bytes
+   ├─ Executable: YES (chmod 755)
+   ├─ Dependencies: Standard library only (urllib, json, os, sys, pathlib)
+   ├─ Configuration:
+   │  ├─ LINKSTASH_SERVER (environment variable)
+   │  ├─ LINKSTASH_SECRET_KEY (environment variable)
+   │  ├─ TOKEN_PATH (~/.linkstash/token)
+   │  ├─ SEARCH_SIZE (10 results)
+   │  └─ TIMEOUT_SECONDS (3 seconds)
+   ├─ Key Functions:
+   │  ├─ read_cached_token() - reads JWT from disk
+   │  ├─ save_token(token) - saves JWT with mode 0o600
+   │  ├─ delete_cached_token() - removes cached token
+   │  ├─ exchange_token() - POST /api/auth/token
+   │  ├─ get_token() - gets valid JWT, caches result
+   │  ├─ search(query, token) - GET /api/search
+   │  ├─ search_with_retry(query) - auto-refresh on 401
+   │  ├─ format_alfred_items(result, query) - JSON formatting
+   │  ├─ alfred_error(title, subtitle) - error output
+   │  └─ main() - entry point
+   ├─ API Calls:
+   │  ├─ POST /api/auth/token
+   │  │   └─ Payload: {"secret_key": "..."}
+   │  └─ GET /api/search?q={query}&type=keyword&size=10
+   │      └─ Header: Authorization: Bearer {jwt}
+   ├─ Output Format:
+   │  ├─ Alfred Script Filter JSON
+   │  ├─ Items with uid, title, subtitle, arg
+   │  └─ Modifiers: cmd (copy), alt (open in web)
+   └─ Error Handling:
+      ├─ HTTP 401 - token refresh
+      ├─ Connection errors - user message
+      ├─ Configuration validation
+      └─ Timeout protection (3 sec)
+
+🔧 File 3: LinkStash.alfredworkflow/info.plist
+   ├─ Purpose: Workflow configuration and metadata
+   ├─ Format: XML Property List
+   ├─ Size: 7,236 bytes
+   ├─ Metadata:
+   │  ├─ Bundle ID: com.linkstash.alfred
+   │  ├─ Name: LinkStash Search
+   │  ├─ Category: Productivity
+   │  ├─ Version: 1.0.0
+   │  ├─ Creator: LinkStash
+   │  └─ Description: Search your LinkStash bookmarks from Alfred
+   ├─ Input Objects:
+   │  ├─ Script Filter (ID: lsearch-scriptfilter)
+   │  │  ├─ Keyword: "ls"
+   │  │  ├─ Command: python3 lsearch.py "{query}"
+   │  │  ├─ Queue Mode: Deferred (mode 1)
+   │  │  ├─ Queue Delay: 3 seconds
+   │  │  ├─ Running Subtext: "Searching LinkStash..."
+   │  │  └─ Escaping: 102 (Normalize Diacritics)
+   │  └─ Keyword Input (ID: linkstash-keyword)
+   │     ├─ Keyword: "lsweb"
+   │     └─ Subtext: "Open LinkStash web search"
+   ├─ Output/Action Objects:
+   │  ├─ Open URL Action (ID: open-url-action)
+   │  │  └─ Default: Opens {query} (URL) in browser
+   │  ├─ Copy Action (ID: copy-action)
+   │  │  └─ ⌘+Enter modifier: Copies {query} (URL) to clipboard
+   │  └─ Open LinkStash Action (ID: open-linkstash-action)
+   │     └─ ⌥+Enter modifier: Opens {LINKSTASH_SERVER}/urls/{uid} in browser
+   ├─ Web Search Output (ID: open-web-search)
+   │  └─ Opens: {var:LINKSTASH_SERVER}/?q={query} in browser
+   ├─ Connections:
+   │  ├─ Script filter → Open URL (default)
+   │  ├─ Script filter → Copy (Cmd modifier)
+   │  ├─ Script filter → Open LinkStash (Alt modifier)
+   │  └─ Web search keyword → Web search output
+   ├─ User Configuration:
+   │  ├─ LINKSTASH_SERVER (textfield, required)
+   │  │  └─ Placeholder: https://linkstash.example.com
+   │  └─ LINKSTASH_SECRET_KEY (textfield, required)
+   │     └─ Placeholder: your-secret-key
+   └─ Visual Layout:
+      ├─ Script filter: (100, 100)
+      ├─ Open URL: (400, 100)
+      ├─ Copy: (400, 200)
+      ├─ Open LinkStash: (400, 300)
+      ├─ Web search: (100, 400)
+      └─ Web search output: (400, 400)
+
+🖼️ File 4: LinkStash.alfredworkflow/icon.png
+   ├─ Purpose: Workflow icon in Alfred app
+   ├─ Format: PNG image
+   ├─ Size: 3,092 bytes
+   └─ Used in: Workflow display and result items
+
+================================================================================
+                    VISIT TRACKING SYSTEM FILES
+================================================================================
+
+Location: app/
+
+📊 ENTITY LAYER
+────────────────────────────────────────────────────────────────────────────
+
+File: app/domain/entity/visit_record.go
+
+type VisitRecord struct {
+    ID        uint           // Primary key, auto-increment
+    URLID     uint           // Foreign key to URL (indexed)
+    ShortID   uint           // Short link ID (indexed)
+    IP        string         // Visitor's IP address (IPv4 or IPv6)
+    UserAgent string         // Browser user agent string
+    CreatedAt time.Time      // Auto-created timestamp
+    UpdatedAt time.Time      // Auto-updated timestamp
+    DeletedAt gorm.DeletedAt // Soft delete marker (indexed)
+}
+
+Table Name: t_visit_records
+Primary Key: id (auto-increment)
+Indexes: url_id, short_id, deleted_at
+Soft Deletes: YES (preserves audit trail)
+
+
+🏢 SERVICE LAYER - VISIT SERVICE
+────────────────────────────────────────────────────────────────────────────
+
+File: app/domain/services/visit_service.go
+Type: Domain Service
+Size: ~900 bytes
+
+type VisitService struct {
+    visitRepo repos.VisitRepo
+}
+
+Methods:
+  ├─ NewVisitService(visitRepo) → *VisitService
+  │  └─ Creates new service with injected repository
+  ├─ RecordURLVisit(urlID uint, ip string, userAgent string) error
+  │  └─ Records visit for a regular URL
+  └─ RecordShortVisit(shortID uint, ip string, userAgent string) error
+     └─ Records visit for a short link
+
+Responsibilities:
+  ├─ Business logic for visit recording
+  ├─ Entity creation
+  └─ Repository delegation
+
+
+🏢 SERVICE LAYER - URL SERVICE
+────────────────────────────────────────────────────────────────────────────
+
+File: app/domain/services/url_service.go
+Type: Domain Service
+Size: ~8 KB
+
+Key Method for Visits:
+  └─ RecordVisit(id uint) error
+     └─ Increments visit_count for URL
+     └─ Delegates to urlRepo.IncrementVisit(id)
+
+Other URL Methods:
+  ├─ AddURL(link string) → URL
+  ├─ GetURL(id uint) → URL
+  ├─ UpdateURL(url *URL) error
+  ├─ DeleteURL(id uint) error
+  ├─ ListURLs(...) → []*URL, total
+  ├─ GenerateShortLink(longURL, customCode, ttl)
+  ├─ ResolveShortCode(code)
+  ├─ UpdateShortLink(id, code, longURL)
+  ├─ ListShortLinks(page, size)
+  └─ ClearShortCode(id)
+
+
+💾 REPOSITORY LAYER
+────────────────────────────────────────────────────────────────────────────
+
+File: app/infra/db/visit_repo_impl.go
+Type: Repository Implementation (GORM)
+Size: ~1.5 KB
+
+type VisitRepoImpl struct {
+    db *gorm.DB
+}
+
+Methods:
+  ├─ NewVisitRepoImpl(db *gorm.DB) → *VisitRepoImpl
+  ├─ Create(record *VisitRecord) error
+  │  └─ INSERT INTO t_visit_records
+  ├─ ListByURLID(urlID uint, page int, size int) 
+  │  │   → []*VisitRecord, total, error
+  │  └─ SELECT * FROM t_visit_records 
+  │     WHERE url_id = ? ORDER BY created_at DESC
+  └─ ListByShortID(shortID uint, page int, size int)
+     │   → []*VisitRecord, total, error
+     └─ SELECT * FROM t_visit_records 
+        WHERE short_id = ? ORDER BY created_at DESC
+
+
+🌐 HTTP HANDLERS
+────────────────────────────────────────────────────────────────────────────
+
+File: app/handler/shorturl_handler.go
+Type: HTTP Handler
+Location: Line 162-185 (HandleRedirect method)
+
+Endpoint: GET /s/:code (PUBLIC - no authentication)
+
+func (h *ShortURLHandler) HandleRedirect(w http.ResponseWriter, r *http.Request) {
+    1. Extract code from URL: /s/abc123
+    2. Resolve short code → URL record
+    3. [ASYNC] Record visit in background goroutine:
+       ├─ URLUsecase.RecordVisit(url.ID)
+       └─ Execution happens in parallel, doesn't block response
+    4. Immediately redirect: HTTP 302 to long URL
+}
+
+Flow:
+  ├─ Visitor clicks: /s/abc123
+  ├─ Handler resolves code to URL
+  ├─ Handler STARTS async goroutine for visit recording
+  ├─ Handler returns 302 redirect IMMEDIATELY
+  ├─ Browser follows redirect to long URL
+  └─ Visit recording completes in background (non-blocking)
+
+Performance Benefit: Redirect happens instantly, doesn't wait for DB write
+
+
+File: app/handler/url_handler.go
+Type: HTTP Handler
+Location: Line 259-273 (HandleVisit method)
+
+Endpoint: POST /api/urls/:id/visit (PROTECTED - authentication required)
+
+func (h *URLHandler) HandleVisit(w http.ResponseWriter, r *http.Request) {
+    1. Parse URL parameter :id
+    2. Call URLUsecase.RecordVisit(id)
+    3. Wait for database operation to complete (BLOCKING)
+    4. Return: {"status": "ok"}
+}
+
+Response: 200 OK
+  {"status": "ok"}
+
+Note: This endpoint only increments visit_count, doesn't create VisitRecord entries
+
+
+🎯 APPLICATION LAYER
+────────────────────────────────────────────────────────────────────────────
+
+File: app/application/url_usecase.go
+Type: Use Case / Application Service
+Size: ~2 KB
+
+type URLUsecase struct {
+    urlService *services.URLService
+}
+
+Visit-Related Method:
+  └─ RecordVisit(id uint) error
+     └─ Delegates to urlService.RecordVisit(id)
+     └─ Which calls urlRepo.IncrementVisit(id)
+
+Orchestration:
+  ├─ AddURL(link) → *URL
+  ├─ GetURL(id) → *URL
+  ├─ UpdateURL(url) error
+  ├─ DeleteURL(id) error
+  ├─ ListURLs(...) → []*URL
+  ├─ RecordVisit(id) error
+  ├─ GenerateShortLink(...)
+  ├─ ResolveShortCode(code)
+  ├─ UpdateShortLink(...)
+  ├─ ListShortLinks(...)
+  └─ ClearShortCode(id)
+
+Pattern: Thin orchestration layer, delegates to domain services
+
+
+================================================================================
+                         CALL CHAIN ANALYSIS
+================================================================================
+
+SHORT LINK VISIT RECORDING (Async):
+────────────────────────────────────────────────────────────────────────────
+
+GET /s/abc123
+    ↓
+ShortURLHandler.HandleRedirect()
+    ├─ Resolve code
+    ├─ [START GOROUTINE]
+    │   ├─ URLUsecase.RecordVisit(id)
+    │   ├─ URLService.RecordVisit(id)
+    │   ├─ URLRepo.IncrementVisit(id)
+    │   │   └─ UPDATE t_urls SET visit_count += 1
+    │   └─ [Optional] VisitService.RecordShortVisit()
+    │       └─ INSERT INTO t_visit_records
+    └─ Immediately return 302 redirect
+
+Total Time to User: ~50ms (redirect only)
+Background Time: Database operations (1-10ms typically)
+
+
+URL VISIT RECORDING (Sync - Protected API):
+────────────────────────────────────────────────────────────────────────────
+
+POST /api/urls/:id/visit (with Bearer token)
+    ↓
+Auth middleware validates JWT
+    ↓
+URLHandler.HandleVisit()
+    ├─ Parse :id
+    ├─ URLUsecase.RecordVisit(id)
+    ├─ URLService.RecordVisit(id)
+    ├─ URLRepo.IncrementVisit(id)
+    │   └─ UPDATE t_urls SET visit_count += 1
+    └─ Return 200 OK {"status": "ok"}
+
+Total Time to Client: ~5-20ms (includes DB write)
+
+
+ALFRED WORKFLOW SEARCH:
+────────────────────────────────────────────────────────────────────────────
+
+User types: ls python
+    ↓
+Alfred executes: python3 lsearch.py "python"
+    ↓
+Script reads: LINKSTASH_SERVER, LINKSTASH_SECRET_KEY
+    ↓
+Check token cache (~/.linkstash/token)
+    ├─ If exists → skip auth
+    └─ If missing → POST /api/auth/token
+        └─ Exchange secret_key for JWT
+        └─ Save to cache (mode 0o600)
+    ↓
+GET /api/search?q=python&type=keyword&size=10
+    ├─ Header: Authorization: Bearer {jwt}
+    ├─ Response: {"data": [...]}
+    └─ Parse response
+    ↓
+Format as Alfred items:
+    {
+      "items": [
+        {
+          "uid": "123",
+          "title": "Python Docs",
+          "subtitle": "https://python.org [Programming] (public) score: 0.95",
+          "arg": "https://python.org",
+          "mods": {
+            "cmd": {...},
+            "alt": {...}
+          }
+        }
+      ]
+    }
+    ↓
+Alfred displays results
+    ↓
+User presses:
+  ├─ Enter → open https://python.org
+  ├─ Cmd+Enter → copy to clipboard
+  └─ Alt+Enter → open in LinkStash web
+
+
+================================================================================
+                         SECURITY NOTES
+================================================================================
+
+AUTHENTICATION:
+  ├─ Alfred Workflow:
+  │  ├─ Uses JWT tokens
+  │  ├─ Exchanged via secret_key (symmetric)
+  │  ├─ Cached at ~/.linkstash/token (restricted perms: 0o600)
+  │  ├─ Auto-refreshes on 401
+  │  └─ 3-second timeout for safety
+  │
+  └─ Visit Recording:
+     ├─ Short links: PUBLIC (no auth required)
+     ├─ API endpoint: PROTECTED (requires Bearer token)
+     └─ IP + User-Agent captured automatically
+
+DATA PRIVACY:
+  ├─ Visit records capture:
+  │  ├─ IP address (for geolocation/tracking)
+  │  ├─ User-Agent (for analytics)
+  │  └─ Timestamps
+  │
+  └─ Retention:
+     ├─ Soft deletes preserve data (marked as deleted_at)
+     ├─ Supports GDPR data retention policies
+     └─ Can be hard-deleted if needed
+
+TOKENS:
+  ├─ Cache file permissions: 0o600 (read/write for owner only)
+  ├─ Stored on local filesystem (not transmitted)
+  └─ Can be manually deleted to force re-authentication
+
+
+================================================================================
+                      FILE DEPENDENCY GRAPH
+================================================================================
+
+extend_plugins/alfred/
+├── README.md
+│   └─ References: info.plist, lsearch.py
+│
+└── LinkStash.alfredworkflow/
+    ├── info.plist
+    │   └─ References: lsearch.py, LINKSTASH_SERVER, LINKSTASH_SECRET_KEY
+    │
+    ├── lsearch.py
+    │   ├─ Calls: POST /api/auth/token
+    │   ├─ Calls: GET /api/search
+    │   └─ Imports: urllib, json, os, sys, pathlib
+    │
+    └── icon.png
+        └─ Referenced by: info.plist, lsearch.py
+
+app/domain/entity/
+└── visit_record.go
+    └─ Used by: visit_service.go, visit_repo_impl.go
+
+app/domain/services/
+├── visit_service.go
+│   ├─ Uses: visit_record.go, VisitRepo interface
+│   └─ Called by: url_usecase.go
+│
+└── url_service.go
+    ├─ Uses: visit_service.go (indirectly)
+    ├─ Implements: RecordVisit()
+    └─ Called by: url_usecase.go
+
+app/infra/db/
+└── visit_repo_impl.go
+    ├─ Uses: visit_record.go
+    ├─ Implements: VisitRepo interface
+    └─ Called by: visit_service.go
+
+app/handler/
+├── shorturl_handler.go
+│   ├─ Uses: url_usecase.go
+│   ├─ Calls: RecordVisit() [async]
+│   └─ Endpoint: GET /s/:code
+│
+└── url_handler.go
+    ├─ Uses: url_usecase.go
+    ├─ Calls: RecordVisit() [sync]
+    └─ Endpoint: POST /api/urls/:id/visit
+
+app/application/
+└── url_usecase.go
+    ├─ Uses: url_service.go, visit_service.go
+    ├─ Implements: RecordVisit()
+    └─ Used by: shorturl_handler.go, url_handler.go
+
+
+================================================================================
+                         REFERENCE LINKS
+================================================================================
+
+📚 Full Documentation:
+   → ALFRED_AND_VISIT_TRACKING_REPORT.md (447 lines)
+      Comprehensive analysis of all components, architecture, and flows
+
+📋 Quick Reference:
+   → ALFRED_VISIT_QUICK_REFERENCE.md
+      Quick lookup, API contracts, troubleshooting, code entry points
+
+📁 This File:
+   → ALFRED_VISIT_FILES_MANIFEST.txt (THIS FILE)
+      Complete file listing with details and dependency analysis
+
+
+================================================================================
+                            END OF MANIFEST
+================================================================================
